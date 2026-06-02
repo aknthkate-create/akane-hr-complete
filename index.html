@@ -507,6 +507,9 @@ tr:hover td{background:var(--gray-l)}
         <label>Apps Script URL (exec)</label>
         <input id="settingsUrl" placeholder="https://script.google.com/macros/s/…/exec">
       </div>
+      <div id="urlHint" style="display:none;margin-top:8px;padding:10px 12px;background:var(--amber-l);border-radius:var(--r);font-size:12px;color:var(--amber-d)">
+        <strong>แนะนำ:</strong> เปิดไฟล์ HTML แล้วแก้บรรทัด <code>DEFAULT_SCRIPT_URL = ''</code> ให้เป็น URL นี้เลย — ทุกเครื่องจะ sync อัตโนมัติโดยไม่ต้องตั้งค่าใหม่ค่ะ
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" onclick="saveUrl()">บันทึก URL</button>
         <button class="btn btn-ghost" onclick="testSync()">ทดสอบ Sync</button>
@@ -833,6 +836,9 @@ const DB = {
 const KEYS = Object.keys(DB);
 const LSKEY = 'akane_hr_v2';
 
+// ★ วาง Apps Script URL ของคุณที่นี่เลย — ทุกเครื่องที่เปิดไฟล์นี้จะ sync อัตโนมัติ
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPVU4bh2HRA0Gaykpl8ExuyJ_0UKhHStUX0WcBispla95tSAoBC9MLqZ5Z6s4eQggC/exec';
+
 function save() {
   localStorage.setItem(LSKEY, JSON.stringify(DB));
   updateEmpDatalist();
@@ -862,6 +868,10 @@ function load() {
       const d = JSON.parse(raw);
       KEYS.forEach(k => { if (d[k] !== undefined) DB[k] = d[k]; });
     } catch(e) {}
+  }
+  // ถ้าไม่มี URL ใน localStorage ให้ใช้ DEFAULT ที่ฝังในไฟล์
+  if (!DB.settings.scriptUrl && DEFAULT_SCRIPT_URL) {
+    DB.settings.scriptUrl = DEFAULT_SCRIPT_URL;
   }
 }
 
@@ -1819,6 +1829,10 @@ async function saveUrl() {
 
 function renderSettings() {
   document.getElementById('settingsUrl').value=DB.settings.scriptUrl||'';
+  // แสดง hint ให้ user รู้ว่าควรฝัง URL ในไฟล์
+  const savedUrl = DB.settings.scriptUrl;
+  const hintEl = document.getElementById('urlHint');
+  if (hintEl && savedUrl) hintEl.style.display='block';
   document.getElementById(DB.settings.mode==='kate'?'modeKate':'modeView').checked=true;
   const stats=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
     ${[['พนักงาน',DB.employees.length,'ti-users'],['การลา',DB.leave.length,'ti-calendar-off'],['Payroll',DB.payroll.length,'ti-cash'],
