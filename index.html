@@ -845,19 +845,26 @@ function save() {
 }
 
 // push to Sheets ใน background (ไม่บล็อก UI)
+// ใช้ Content-Type: text/plain เพื่อเลี่ยง CORS preflight
 function pushToSheets() {
   const url = DB.settings.scriptUrl;
   if (!url) return;
   fetch(url, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: {'Content-Type':'text/plain'},
     body: JSON.stringify({action:'saveAll', data:DB})
-  }).then(()=>{
+  }).then(r => r.json()).then(d => {
     document.getElementById('syncDot').className='status-dot on';
     document.getElementById('syncTxt').textContent='sync แล้ว ✓';
   }).catch(()=>{
-    document.getElementById('syncDot').className='status-dot';
-    document.getElementById('syncTxt').textContent='บันทึกในเครื่องแล้ว (sync ไม่ได้)';
+    // ถ้า POST ไม่ผ่าน ลอง GET แทน (บางเครือข่าย block POST)
+    fetch(url + '?action=ping').then(() => {
+      document.getElementById('syncDot').className='status-dot on';
+      document.getElementById('syncTxt').textContent='เชื่อมต่อได้ (sync ต่อไป)';
+    }).catch(() => {
+      document.getElementById('syncDot').className='status-dot';
+      document.getElementById('syncTxt').textContent='offline — บันทึกในเครื่องแล้ว';
+    });
   });
 }
 
@@ -1873,9 +1880,16 @@ async function syncToSheets() {
   const url=DB.settings.scriptUrl;
   if(!url)return alert('กรุณาตั้ง URL ก่อนค่ะ');
   try {
-    await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveAll',data:DB})});
-    alert('อัปโหลดข้อมูลสำเร็จ ✓');
-  } catch(e){alert('อัปโหลดไม่ได้: '+e.message);}
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'saveAll',data:DB})});
+    const d=await r.json();
+    if(d.status==='ok'){
+      document.getElementById('syncDot').className='status-dot on';
+      document.getElementById('syncTxt').textContent='sync แล้ว ✓';
+      alert('อัปโหลดข้อมูลสำเร็จ ✓');
+    } else {
+      alert('Apps Script ตอบกลับ: '+JSON.stringify(d));
+    }
+  } catch(e){alert('อัปโหลดไม่ได้: '+e.message+'\nลองกด Deploy ใหม่ใน Apps Script ค่ะ');}
 }
 
 async function syncFromSheets() {
