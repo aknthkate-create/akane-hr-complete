@@ -637,7 +637,7 @@ tr:hover td{background:var(--gray-l)}
       <div class="field"><label>เงินเดือน (บาท) *</label><input type="number" id="payBase" oninput="calcPay()"></div>
       <div class="field"><label>OT / เพิ่มพิเศษ</label><input type="number" id="payOt" value="0" oninput="calcPay()"></div>
       <div class="field"><label>โบนัส</label><input type="number" id="payBonus" value="0" oninput="calcPay()"></div>
-      <div class="field"><label>หักประกันสังคม (5%)</label><input type="number" id="paySocialF" readonly></div>
+      <div class="field"><label>หักประกันสังคม 5% (ฐานสูงสุด 17,500 บ.)</label><input type="number" id="paySocialF" readonly></div>
       <div class="field"><label>หักอื่นๆ</label><input type="number" id="payDeduct" value="0" oninput="calcPay()"></div>
       <div class="field"><label>ยอดสุทธิ</label><input type="number" id="payNet" readonly style="font-weight:500;color:var(--teal)"></div>
       <div class="field form-full"><label>หมายเหตุ</label><input id="payNote"></div>
@@ -1299,7 +1299,7 @@ function calcPay() {
   const ot = Number(document.getElementById('payOt').value)||0;
   const bonus = Number(document.getElementById('payBonus').value)||0;
   const deduct = Number(document.getElementById('payDeduct').value)||0;
-  const social = Math.round(Math.min(base,15000)*0.05);
+  const social = Math.round(Math.min(base,17500)*0.05);
   document.getElementById('paySocialF').value = social;
   document.getElementById('payNet').value = base + ot + bonus - social - deduct;
 }
@@ -1382,7 +1382,7 @@ function renderPaySocial() {
       <thead><tr><th>ชื่อ</th><th>ฐานเงินเดือน</th><th>หัก 5%</th><th>นายจ้างจ่าย 5%</th><th>รวม</th></tr></thead>
       <tbody>${list.map(p=>`<tr>
         <td style="font-weight:500">${p.employee}</td>
-        <td>${num(Math.min(p.base,15000))}</td>
+        <td>${num(Math.min(p.base,17500))}</td>
         <td>${num(p.social)}</td>
         <td>${num(p.social)}</td>
         <td style="font-weight:500">${num(p.social*2)}</td>
@@ -2050,7 +2050,7 @@ function printPaySlip(id) {
     <tr class="item plus"><td>เงินเดือน</td><td style="text-align:right">${(p.base||0).toLocaleString()} บ.</td></tr>
     ${p.ot?`<tr class="item plus"><td>OT / เพิ่มพิเศษ</td><td style="text-align:right">${(p.ot).toLocaleString()} บ.</td></tr>`:''}
     ${p.bonus?`<tr class="item plus"><td>โบนัส</td><td style="text-align:right">${(p.bonus).toLocaleString()} บ.</td></tr>`:''}
-    <tr class="item minus"><td>หักประกันสังคม (5%)</td><td style="text-align:right">-${(p.social||0).toLocaleString()} บ.</td></tr>
+    <tr class="item minus"><td>หักประกันสังคม (5% สูงสุด 875 บ.)</td><td style="text-align:right">-${(p.social||0).toLocaleString()} บ.</td></tr>
     ${p.deduct?`<tr class="item minus"><td>หักอื่นๆ</td><td style="text-align:right">-${(p.deduct).toLocaleString()} บ.</td></tr>`:''}
   </table>
   <div class="total"><span>รวมสุทธิ</span><span>${(p.net||0).toLocaleString()} บ.</span></div>
