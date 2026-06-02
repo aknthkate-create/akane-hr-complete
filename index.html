@@ -838,6 +838,23 @@ function save() {
   updateEmpDatalist();
 }
 
+// push to Sheets ใน background (ไม่บล็อก UI)
+function pushToSheets() {
+  const url = DB.settings.scriptUrl;
+  if (!url) return;
+  fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({action:'saveAll', data:DB})
+  }).then(()=>{
+    document.getElementById('syncDot').className='status-dot on';
+    document.getElementById('syncTxt').textContent='sync แล้ว ✓';
+  }).catch(()=>{
+    document.getElementById('syncDot').className='status-dot';
+    document.getElementById('syncTxt').textContent='บันทึกในเครื่องแล้ว (sync ไม่ได้)';
+  });
+}
+
 function load() {
   const raw = localStorage.getItem(LSKEY);
   if (raw) {
@@ -1047,7 +1064,7 @@ function saveEmployee() {
   if (!obj.nickname) return alert('กรุณากรอกชื่อเล่น');
   if (id) { const i = DB.employees.findIndex(e => e.id === id); if (i >= 0) DB.employees[i] = obj; }
   else DB.employees.push(obj);
-  save(); closeModal('modalEmployee'); renderEmployees(); renderDashboard();
+  save();pushToSheets(); closeModal('modalEmployee'); renderEmployees(); renderDashboard();
   document.getElementById('empId').value = '';
 }
 
@@ -1127,7 +1144,7 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
-  save(); closeModal('modalLeave'); renderLeave(); renderDashboard();
+  save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
 }
 
@@ -1204,7 +1221,7 @@ function saveAttendance() {
     note: document.getElementById('attNote').value.trim()
   };
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
-  DB.attendance.push(obj); save(); closeModal('modalAttendance'); renderAttDaily();
+  DB.attendance.push(obj); save();pushToSheets(); closeModal('modalAttendance'); renderAttDaily();
 }
 
 function renderAttDaily() {
@@ -1321,7 +1338,7 @@ function savePayroll() {
   if (!obj.employee||!obj.month) return alert('กรุณากรอกชื่อและเดือน');
   if (id){const i=DB.payroll.findIndex(p=>p.id===id);if(i>=0)DB.payroll[i]=obj;}
   else DB.payroll.push(obj);
-  save(); closeModal('modalPayroll'); renderPayroll();
+  save();pushToSheets(); closeModal('modalPayroll'); renderPayroll();
   document.getElementById('payId').value='';
 }
 
@@ -1348,7 +1365,7 @@ function renderPayroll() {
   }</tbody>`;
 }
 
-function deletePay(id){DB.payroll=DB.payroll.filter(p=>p.id!==id);save();renderPayroll();}
+function deletePay(id){DB.payroll=DB.payroll.filter(p=>p.id!==id);save();pushToSheets();renderPayroll();}
 
 function renderPaySlip() {
   const month=document.getElementById('payMonth')?.value||thisMonth();
@@ -1411,7 +1428,7 @@ function saveKpi() {
   if(!obj.employee||!obj.month)return alert('กรุณากรอกชื่อและเดือน');
   if(id){const i=DB.kpi.findIndex(k=>k.id===id);if(i>=0)DB.kpi[i]=obj;}
   else DB.kpi.push(obj);
-  save();closeModal('modalKpi');renderKpiBoard();renderKpiList();
+  save();pushToSheets();closeModal('modalKpi');renderKpiBoard();renderKpiList();
   document.getElementById('kpiId').value='';
 }
 
@@ -1454,7 +1471,7 @@ function renderKpiList() {
   }</tbody>`;
 }
 
-function deleteKpi(id){DB.kpi=DB.kpi.filter(k=>k.id!==id);save();renderKpiBoard();renderKpiList();}
+function deleteKpi(id){DB.kpi=DB.kpi.filter(k=>k.id!==id);save();pushToSheets();renderKpiBoard();renderKpiList();}
 
 function renderKpiEval() {
   document.getElementById('kpiEval').innerHTML = `
@@ -1487,7 +1504,7 @@ function saveCoach() {
   if(!obj.employee||!obj.date)return alert('กรุณากรอกชื่อและวันที่');
   if(id){const i=DB.coaching.findIndex(c=>c.id===id);if(i>=0)DB.coaching[i]=obj;}
   else DB.coaching.push(obj);
-  save();closeModal('modalCoach');renderCoachPlan();renderCoachHistory();
+  save();pushToSheets();closeModal('modalCoach');renderCoachPlan();renderCoachHistory();
   document.getElementById('coachId').value='';
 }
 
@@ -1531,7 +1548,7 @@ function renderCoachHistory() {
   }</tbody>`;
 }
 
-function deleteCoach(id){DB.coaching=DB.coaching.filter(c=>c.id!==id);save();renderCoachHistory();}
+function deleteCoach(id){DB.coaching=DB.coaching.filter(c=>c.id!==id);save();pushToSheets();renderCoachHistory();}
 
 // ══════════════════════════════════
 // TRAINING
@@ -1548,7 +1565,7 @@ function saveTraining() {
     note:document.getElementById('trainNote').value.trim()
   };
   if(!obj.employee||!obj.topic)return alert('กรุณากรอกชื่อและหัวข้อ');
-  DB.training.push(obj);save();closeModal('modalTraining');renderTraining();renderIdp();
+  DB.training.push(obj);save();pushToSheets();closeModal('modalTraining');renderTraining();renderIdp();
 }
 
 function renderTraining() {
@@ -1577,7 +1594,7 @@ function renderTraining() {
   }</tbody>`;
 }
 
-function deleteTrain(id){DB.training=DB.training.filter(t=>t.id!==id);save();renderTraining();}
+function deleteTrain(id){DB.training=DB.training.filter(t=>t.id!==id);save();pushToSheets();renderTraining();}
 
 function renderIdp() {
   const emps=DB.employees.filter(e=>e.status==='active');
@@ -1610,7 +1627,7 @@ function saveDoc() {
     createdAt:todayStr()
   };
   if(!obj.name)return alert('กรุณากรอกชื่อเอกสาร');
-  DB.documents.push(obj);save();closeModal('modalDoc');renderDocs();
+  DB.documents.push(obj);save();pushToSheets();closeModal('modalDoc');renderDocs();
 }
 
 function renderDocs() {
@@ -1640,7 +1657,7 @@ function renderDocs() {
   }).join(''):`<div style="grid-column:1/-1">${empty('ยังไม่มีเอกสาร')}</div>`;
 }
 
-function deleteDoc(id){DB.documents=DB.documents.filter(d=>d.id!==id);save();renderDocs();}
+function deleteDoc(id){DB.documents=DB.documents.filter(d=>d.id!==id);save();pushToSheets();renderDocs();}
 
 // ══════════════════════════════════
 // RECRUITMENT
@@ -1657,7 +1674,7 @@ function saveCandidate() {
     note:document.getElementById('candNote').value.trim()
   };
   if(!obj.name)return alert('กรุณากรอกชื่อผู้สมัคร');
-  DB.candidates.push(obj);save();closeModal('modalCandidate');renderPipeline();
+  DB.candidates.push(obj);save();pushToSheets();closeModal('modalCandidate');renderPipeline();
 }
 
 function renderPipeline() {
@@ -1684,8 +1701,8 @@ function renderPipeline() {
   }).join('');
 }
 
-function moveCandidate(id,status){const c=DB.candidates.find(x=>x.id===id);if(c){c.status=status;save();renderPipeline();}}
-function deleteCand(id){DB.candidates=DB.candidates.filter(c=>c.id!==id);save();renderPipeline();}
+function moveCandidate(id,status){const c=DB.candidates.find(x=>x.id===id);if(c){c.status=status;save();pushToSheets();renderPipeline();}}
+function deleteCand(id){DB.candidates=DB.candidates.filter(c=>c.id!==id);save();pushToSheets();renderPipeline();}
 
 const ONBOARD_ITEMS=[
   {id:'ob1',label:'เซ็นสัญญาจ้าง'},
@@ -1745,7 +1762,7 @@ function saveAnnounce() {
     content:document.getElementById('annContent').value.trim()
   };
   if(!obj.content)return alert('กรุณากรอกเนื้อหา');
-  DB.announcements.push(obj);save();closeModal('modalAnnounce');renderAnnounce();
+  DB.announcements.push(obj);save();pushToSheets();closeModal('modalAnnounce');renderAnnounce();
 }
 
 function renderAnnounce() {
@@ -1763,17 +1780,41 @@ function renderAnnounce() {
   }</tbody>`;
 }
 
-function deleteAnn(id){DB.announcements=DB.announcements.filter(a=>a.id!==id);save();renderAnnounce();}
+function deleteAnn(id){DB.announcements=DB.announcements.filter(a=>a.id!==id);save();pushToSheets();renderAnnounce();}
 
 // ══════════════════════════════════
 // SETTINGS
 // ══════════════════════════════════
-function saveUrl() {
+async function saveUrl() {
   const url=document.getElementById('settingsUrl').value.trim();
   DB.settings.scriptUrl=url;save();
-  document.getElementById('syncDot').className='status-dot'+(url?' on':'');
-  document.getElementById('syncTxt').textContent=url?'เชื่อมต่อแล้ว':'ยังไม่ sync';
-  alert('บันทึก URL แล้วค่ะ');
+  if (!url) {
+    document.getElementById('syncDot').className='status-dot';
+    document.getElementById('syncTxt').textContent='ยังไม่ sync';
+    alert('ลบ URL แล้วค่ะ');
+    return;
+  }
+  document.getElementById('syncTxt').textContent='กำลัง sync...';
+  document.getElementById('syncDot').className='status-dot';
+  try {
+    const r = await fetch(url+'?action=getAll');
+    const d = await r.json();
+    if (d.status==='ok' && d.data) {
+      const keys=Object.keys(d.data);
+      keys.forEach(k=>{if(k!=='settings'&&Array.isArray(d.data[k]))DB[k]=d.data[k];});
+      save();updateEmpDatalist();renderDashboard();
+      document.getElementById('syncDot').className='status-dot on';
+      document.getElementById('syncTxt').textContent='sync แล้ว ✓';
+      alert('บันทึก URL และ sync สำเร็จ ✓');
+    } else {
+      document.getElementById('syncTxt').textContent='เชื่อมต่อแล้ว (ไม่มีข้อมูลใน Sheets)';
+      alert('บันทึก URL แล้ว — ยังไม่มีข้อมูลใน Sheets ค่ะ');
+    }
+  } catch(e) {
+    document.getElementById('syncDot').className='status-dot';
+    document.getElementById('syncTxt').textContent='บันทึกแล้ว (เชื่อมต่อไม่ได้)';
+    alert('บันทึก URL แล้ว แต่เชื่อมต่อ Sheets ไม่ได้ตอนนี้ค่ะ');
+  }
 }
 
 function renderSettings() {
@@ -1852,7 +1893,7 @@ function importData(e) {
   r.readAsText(f);
 }
 
-function clearAll(){KEYS.forEach(k=>{if(k!=='settings')DB[k]=[];});save();renderDashboard();alert('ล้างข้อมูลแล้ว');}
+function clearAll(){KEYS.forEach(k=>{if(k!=='settings')DB[k]=[];});save();pushToSheets();renderDashboard();alert('ล้างข้อมูลแล้ว');}
 
 
 // ══════════════════════════════════
@@ -1877,7 +1918,7 @@ function saveWarning() {
   if(!DB.warnings)DB.warnings=[];
   if(id){const i=DB.warnings.findIndex(w=>w.id===id);if(i>=0)DB.warnings[i]=obj;}
   else DB.warnings.push(obj);
-  save();closeModal('modalWarning');renderWarnings();
+  save();pushToSheets();closeModal('modalWarning');renderWarnings();
   document.getElementById('warnId').value='';
 }
 
@@ -1935,7 +1976,7 @@ function renderWarnings() {
 
 function deleteWarning(id){
   if(!confirm('ลบหนังสือเตือนนี้?'))return;
-  DB.warnings=DB.warnings.filter(w=>w.id!==id);save();renderWarnings();
+  DB.warnings=DB.warnings.filter(w=>w.id!==id);save();pushToSheets();renderWarnings();
 }
 
 function printWarning(id){
@@ -2116,7 +2157,44 @@ applyMode();
 document.getElementById('syncDot').className='status-dot'+(DB.settings.scriptUrl?' on':'');
 document.getElementById('syncTxt').textContent=DB.settings.scriptUrl?'เชื่อมต่อแล้ว':'ยังไม่ sync';
 document.getElementById('dashDate').textContent=`วันที่ ${fmtDate(todayStr())}`;
-renderDashboard();
+
+// AUTO SYNC — ดึงจาก Sheets อัตโนมัติตอนเปิด ถ้ามี URL
+async function initAutoSync() {
+  const url = DB.settings.scriptUrl;
+  if (!url) {
+    renderDashboard();
+    return;
+  }
+  // แสดง loading
+  document.getElementById('syncTxt').textContent = 'กำลังโหลด...';
+  document.getElementById('syncDot').className = 'status-dot';
+  try {
+    const r = await fetch(url + '?action=getAll');
+    const d = await r.json();
+    if (d.status === 'ok' && d.data) {
+      // merge — Sheets ชนะ localStorage
+      const keys = Object.keys(d.data);
+      keys.forEach(k => {
+        if (k !== 'settings' && Array.isArray(d.data[k])) {
+          DB[k] = d.data[k];
+        }
+      });
+      save(); // อัปเดต localStorage ให้ตรงกัน
+      document.getElementById('syncDot').className = 'status-dot on';
+      document.getElementById('syncTxt').textContent = 'sync แล้ว ✓';
+    } else {
+      document.getElementById('syncTxt').textContent = 'ใช้ข้อมูลในเครื่อง';
+    }
+  } catch(e) {
+    // ถ้า offline หรือ error ใช้ localStorage ต่อ
+    document.getElementById('syncDot').className = 'status-dot';
+    document.getElementById('syncTxt').textContent = 'offline — ใช้ข้อมูลในเครื่อง';
+  }
+  updateEmpDatalist();
+  renderDashboard();
+}
+
+initAutoSync();
 
 // Set today defaults
 const el=document.getElementById('attDateF');if(el)el.value=todayStr();
