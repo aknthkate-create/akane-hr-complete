@@ -272,7 +272,7 @@ tr:hover td{background:var(--gray-l)}
   <div style="padding:2rem">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
       <div><div class="page-title">สรรหา & Onboarding</div><div class="page-sub">Pipeline ผู้สมัคร + Checklist รับพนักงานใหม่</div></div>
-      <button class="btn btn-primary edit-only" onclick="openModal('modalCandidate')"><i class="ti ti-plus"></i>เพิ่มผู้สมัคร</button>
+      <button class="btn btn-primary edit-only" onclick="openCandModal(null)"><i class="ti ti-plus"></i>เพิ่มผู้สมัคร</button>
     </div>
     <div class="tabs">
       <button class="tab active" onclick="switchTab(this,'rec-pipeline')">Pipeline ผู้สมัคร</button>
@@ -360,12 +360,16 @@ tr:hover td{background:var(--gray-l)}
     <div class="stats" id="payStats"></div>
     <div class="tabs">
       <button class="tab active" onclick="switchTab(this,'pay-table')">รายการ</button>
+      <button class="tab" onclick="switchTab(this,'pay-daily')">ภาพรวมรายวัน</button>
       <button class="tab" onclick="switchTab(this,'pay-slip')">สลิปเงินเดือน</button>
       <button class="tab" onclick="switchTab(this,'pay-social')">ประกันสังคม</button>
       <button class="tab" onclick="switchTab(this,'pay-history')">ประวัติเงินเดือน</button>
     </div>
     <div class="tab-pane active" id="pay-table">
       <div class="card"><div class="tbl-wrap"><table id="payTable"></table></div></div>
+    </div>
+    <div class="tab-pane" id="pay-daily">
+      <div id="payDailyView"></div>
     </div>
     <div class="tab-pane" id="pay-slip">
       <div id="paySlipList"></div>
@@ -631,20 +635,43 @@ tr:hover td{background:var(--gray-l)}
 
 <!-- Payroll Modal -->
 <div class="modal-overlay" id="modalPayroll">
-  <div class="modal">
+  <div class="modal" style="width:640px">
     <div class="modal-header"><div class="modal-title">บันทึกเงินเดือน</div><button class="modal-close" onclick="closeModal('modalPayroll')">✕</button></div>
     <input type="hidden" id="payId">
-    <div class="form-grid">
-      <div class="field"><label>ชื่อพนักงาน *</label><input id="payEmp" list="empList"></div>
+    <div class="form-grid cols3">
+      <div class="field"><label>ชื่อพนักงาน *</label><input id="payEmp" list="empList" oninput="autoFillEmpPay()"></div>
+      <div class="field"><label>รหัสพนักงาน</label><input id="payEmpCode" placeholder="AKN00001"></div>
       <div class="field"><label>เดือน-ปี *</label><input type="month" id="payMonthF"></div>
-      <div class="field"><label>เงินเดือน (บาท) *</label><input type="number" id="payBase" oninput="calcPay()"></div>
-      <div class="field"><label>OT / เพิ่มพิเศษ</label><input type="number" id="payOt" value="0" oninput="calcPay()"></div>
-      <div class="field"><label>โบนัส</label><input type="number" id="payBonus" value="0" oninput="calcPay()"></div>
-      <div class="field"><label>หักประกันสังคม 5% (ฐานสูงสุด 17,500 บ.)</label><input type="number" id="paySocialF" readonly></div>
-      <div class="field"><label>หักอื่นๆ</label><input type="number" id="payDeduct" value="0" oninput="calcPay()"></div>
-      <div class="field"><label>ยอดสุทธิ</label><input type="number" id="payNet" readonly style="font-weight:500;color:var(--teal)"></div>
-      <div class="field form-full"><label>หมายเหตุ</label><input id="payNote"></div>
     </div>
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:10px 0 6px">รายได้</div>
+    <div class="form-grid cols3">
+      <div class="field"><label>ฐานเงินเดือน *</label><input type="number" id="payBase" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>ค่าล่วงเวลา (OT)</label><input type="number" id="payOt" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>ค่าทำงานวันหยุด</label><input type="number" id="payHoliday" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>ค่าคอมมิชชั่น</label><input type="number" id="payCommission" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>ค่าทำงานนอกสถานที่</label><input type="number" id="payOutsite" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>โบนัส / รายได้อื่น</label><input type="number" id="payBonus" value="0" oninput="calcPay()"></div>
+    </div>
+    <div style="background:var(--teal-l);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--teal-d);margin-bottom:10px">
+      รวมรายได้ทั้งสิ้น: <strong id="payTotalIncome">0</strong> บาท
+    </div>
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:10px 0 6px">รายหัก</div>
+    <div class="form-grid cols3">
+      <div class="field"><label>หักลาเกิน/ไม่รับค่าจ้าง</label><input type="number" id="payDeductLeave" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>หัก สปส. 5% (ฐานสูงสุด 17,500)</label><input type="number" id="paySocialF" readonly style="background:var(--gray-l)"></div>
+      <div class="field"><label>หักกองทุน กยศ./กรอ.</label><input type="number" id="payFund" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>เงินกู้บริษัท</label><input type="number" id="payLoan" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>หักอื่นๆ</label><input type="number" id="payDeduct" value="0" oninput="calcPay()"></div>
+    </div>
+    <div style="background:var(--red-l);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--red-d);margin-bottom:10px">
+      รวมรายหักทั้งสิ้น: <strong id="payTotalDeduct">0</strong> บาท
+    </div>
+    <div style="background:var(--blue-l);border-radius:var(--rl);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:14px;font-weight:500;color:var(--blue-d)">เงินได้สุทธิประจำเดือน</div>
+      <div style="font-size:22px;font-weight:600;color:var(--teal)" id="payNetDisplay">0</div>
+    </div>
+    <input type="hidden" id="payNet">
+    <div class="field"><label>หมายเหตุ</label><input id="payNote"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
       <button class="btn btn-ghost" onclick="closeModal('modalPayroll')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="savePayroll()">บันทึก</button>
@@ -774,25 +801,94 @@ tr:hover td{background:var(--gray-l)}
 
 <!-- Candidate Modal -->
 <div class="modal-overlay" id="modalCandidate">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">เพิ่มผู้สมัคร</div><button class="modal-close" onclick="closeModal('modalCandidate')">✕</button></div>
+  <div class="modal" style="width:600px">
+    <div class="modal-header"><div class="modal-title" id="candModalTitle">เพิ่มผู้สมัคร</div><button class="modal-close" onclick="closeModal('modalCandidate')">✕</button></div>
+    <input type="hidden" id="candId">
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">ข้อมูลส่วนตัว</div>
     <div class="form-grid">
-      <div class="field"><label>ชื่อผู้สมัคร *</label><input id="candName"></div>
+      <div class="field"><label>ชื่อ-นามสกุล *</label><input id="candName" placeholder="ชื่อจริง"></div>
+      <div class="field"><label>ชื่อเล่น</label><input id="candNickname" placeholder="ชื่อเล่น"></div>
+      <div class="field"><label>เบอร์ติดต่อ *</label><input id="candPhone" placeholder="08x-xxx-xxxx"></div>
+      <div class="field"><label>LINE ID</label><input id="candLine" placeholder="@line"></div>
+      <div class="field"><label>อายุ</label><input type="number" id="candAge" placeholder="ปี" min="18" max="60"></div>
+      <div class="field"><label>วันเกิด</label><input type="date" id="candBirth"></div>
+      <div class="field form-full"><label>ที่อยู่</label><input id="candAddress" placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"></div>
+    </div>
+
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:14px 0 8px">การสมัครงาน</div>
+    <div class="form-grid">
       <div class="field"><label>ตำแหน่งที่สมัคร *</label><input id="candPosition"></div>
       <div class="field"><label>ทีม</label>
         <select id="candTeam"><option>Telesales</option><option>Live Streaming</option><option>Content</option><option>Admin</option><option>HR</option></select>
       </div>
+      <div class="field"><label>วันที่สมัคร</label><input type="date" id="candDate"></div>
+      <div class="field"><label>เงินเดือนที่ต้องการ (บ.)</label><input type="number" id="candSalaryExpect" placeholder="0"></div>
+      <div class="field"><label>วุฒิการศึกษา</label><input id="candEducation" placeholder="ม.6 / ปวช. / ป.ตรี"></div>
+      <div class="field"><label>ประสบการณ์ (ปี)</label><input type="number" id="candExp" placeholder="0" min="0"></div>
+      <div class="field form-full"><label>ประวัติการทำงาน / สังกัดเดิม</label><input id="candWorkHistory" placeholder="บริษัท ตำแหน่ง ระยะเวลา"></div>
+      <div class="field form-full"><label>Link Resume / Portfolio</label><input id="candResume" placeholder="https://drive.google.com/..."></div>
+    </div>
+
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin:14px 0 8px">การสัมภาษณ์ & ผลการตัดสินใจ</div>
+    <div class="form-grid">
       <div class="field"><label>สถานะ</label>
         <select id="candStatus"><option>รับใบสมัคร</option><option>นัดสัมภาษณ์</option><option>สัมภาษณ์แล้ว</option><option>รอผล</option><option>ผ่าน</option><option>ไม่ผ่าน</option></select>
       </div>
-      <div class="field"><label>วันที่สมัคร</label><input type="date" id="candDate"></div>
-      <div class="field"><label>เบอร์ติดต่อ</label><input id="candPhone"></div>
-      <div class="field form-full"><label>หมายเหตุ</label><textarea id="candNote" rows="2"></textarea></div>
+      <div class="field"><label>วันนัดสัมภาษณ์</label><input type="date" id="candInterviewDate"></div>
+      <div class="field"><label>เวลานัด</label><input type="time" id="candInterviewTime"></div>
+      <div class="field"><label>คะแนนสัมภาษณ์ (0-10)</label><input type="number" id="candScore" min="0" max="10" placeholder="0"></div>
+      <div class="field"><label>ผลการตัดสินใจ</label>
+        <select id="candDecision"><option value="">ยังไม่ตัดสินใจ</option><option value="รับเข้าทำงาน">รับเข้าทำงาน ✓</option><option value="ไม่รับ">ไม่รับ ✗</option><option value="รอสำรอง">รอสำรอง</option></select>
+      </div>
+      <div class="field"><label>วันเริ่มงาน (ถ้ารับ)</label><input type="date" id="candStartDate"></div>
+      <div class="field form-full"><label>บันทึกการสัมภาษณ์ / เหตุผลการตัดสินใจ</label><textarea id="candNote" rows="2" placeholder="จุดเด่น จุดด้อย เหตุผล..."></textarea></div>
     </div>
+
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
       <button class="btn btn-ghost" onclick="closeModal('modalCandidate')">ยกเลิก</button>
       <button class="btn btn-primary" onclick="saveCandidate()">บันทึก</button>
     </div>
+  </div>
+</div>
+
+
+<!-- Candidate Profile Modal -->
+<div class="modal-overlay" id="modalCandProfile">
+  <div class="modal" style="width:640px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" id="profAvatar" style="width:40px;height:40px;font-size:16px;background:var(--blue-l);color:var(--blue-d)"></div>
+        <div>
+          <div class="modal-title" id="profName"></div>
+          <div style="font-size:12px;color:var(--text3)" id="profSub"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-ghost btn-sm edit-only" id="profEditBtn" onclick="editCandFromProfile()"><i class="ti ti-edit"></i>แก้ไข</button>
+        <button class="modal-close" onclick="closeModal('modalCandProfile')">✕</button>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div id="profStatusBar" style="margin-bottom:1rem"></div>
+
+    <!-- ส่วนตัว -->
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">ข้อมูลส่วนตัว</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;margin-bottom:1rem" id="profPersonal"></div>
+
+    <!-- สมัครงาน -->
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">การสมัครงาน</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;margin-bottom:1rem" id="profJob"></div>
+
+    <!-- Resume -->
+    <div id="profResumeRow" style="margin-bottom:1rem"></div>
+
+    <!-- สัมภาษณ์ -->
+    <div style="font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">การสัมภาษณ์</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;font-size:13px;margin-bottom:1rem" id="profInterview"></div>
+
+    <!-- note -->
+    <div id="profNote" style="margin-bottom:1rem"></div>
   </div>
 </div>
 
@@ -943,6 +1039,7 @@ function switchTab(btn, paneId) {
   if (paneId === 'pay-slip') renderPaySlip();
   if (paneId === 'pay-social') renderPaySocial();
   if (paneId === 'pay-history') renderPayHistory();
+  if (paneId === 'pay-daily') renderPayDaily();
   if (paneId === 'kpi-list') renderKpiList();
   if (paneId === 'kpi-eval') renderKpiEval();
   if (paneId === 'coach-history') renderCoachHistory();
@@ -1328,57 +1425,110 @@ function initPayMonths() {
   sel.value = thisMonth();
 }
 
+function autoFillEmpPay() {
+  const nick = document.getElementById('payEmp').value.trim();
+  const emp = DB.employees.find(e=>e.nickname===nick);
+  if(emp) {
+    document.getElementById('payEmpCode').value = emp.id||'';
+    if(!document.getElementById('payBase').value || document.getElementById('payBase').value==='0') {
+      document.getElementById('payBase').value = emp.salary||0;
+      calcPay();
+    }
+  }
+}
+
 function calcPay() {
-  const base = Number(document.getElementById('payBase').value)||0;
-  const ot = Number(document.getElementById('payOt').value)||0;
-  const bonus = Number(document.getElementById('payBonus').value)||0;
-  const deduct = Number(document.getElementById('payDeduct').value)||0;
+  const g = id => Number(document.getElementById(id)?.value)||0;
+  const base = g('payBase');
+  const ot = g('payOt');
+  const holiday = g('payHoliday');
+  const commission = g('payCommission');
+  const outsite = g('payOutsite');
+  const bonus = g('payBonus');
+  const totalIncome = base + ot + holiday + commission + outsite + bonus;
+
+  const deductLeave = g('payDeductLeave');
   const social = Math.round(Math.min(base,17500)*0.05);
+  const fund = g('payFund');
+  const loan = g('payLoan');
+  const deduct = g('payDeduct');
+  const totalDeduct = deductLeave + social + fund + loan + deduct;
+  const net = totalIncome - totalDeduct;
+
   document.getElementById('paySocialF').value = social;
-  document.getElementById('payNet').value = base + ot + bonus - social - deduct;
+  document.getElementById('payNet').value = net;
+  document.getElementById('payNetDisplay').textContent = net.toLocaleString();
+  document.getElementById('payTotalIncome').textContent = totalIncome.toLocaleString();
+  document.getElementById('payTotalDeduct').textContent = totalDeduct.toLocaleString();
 }
 
 function savePayroll() {
   const id = document.getElementById('payId').value;
+  const g = fid => Number(document.getElementById(fid)?.value)||0;
   const obj = {
     id: id||uid(),
     employee: document.getElementById('payEmp').value.trim(),
+    empCode: document.getElementById('payEmpCode').value.trim(),
     month: document.getElementById('payMonthF').value,
-    base: Number(document.getElementById('payBase').value)||0,
-    ot: Number(document.getElementById('payOt').value)||0,
-    bonus: Number(document.getElementById('payBonus').value)||0,
-    social: Number(document.getElementById('paySocialF').value)||0,
-    deduct: Number(document.getElementById('payDeduct').value)||0,
-    net: Number(document.getElementById('payNet').value)||0,
+    base: g('payBase'),
+    ot: g('payOt'),
+    holiday: g('payHoliday'),
+    commission: g('payCommission'),
+    outsite: g('payOutsite'),
+    bonus: g('payBonus'),
+    deductLeave: g('payDeductLeave'),
+    social: g('paySocialF'),
+    fund: g('payFund'),
+    loan: g('payLoan'),
+    deduct: g('payDeduct'),
+    net: g('payNet'),
     note: document.getElementById('payNote').value.trim()
   };
   if (!obj.employee||!obj.month) return alert('กรุณากรอกชื่อและเดือน');
   if (id){const i=DB.payroll.findIndex(p=>p.id===id);if(i>=0)DB.payroll[i]=obj;}
   else DB.payroll.push(obj);
-  save();pushToSheets(); closeModal('modalPayroll'); renderPayroll();
+  save();pushToSheets();closeModal('modalPayroll');renderPayroll();
   document.getElementById('payId').value='';
+  // reset fields
+  ['payBase','payOt','payHoliday','payCommission','payOutsite','payBonus','payDeductLeave','payFund','payLoan','payDeduct'].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=0; });
+  calcPay();
 }
 
 function renderPayroll() {
   const month = document.getElementById('payMonth')?.value||thisMonth();
   const list = DB.payroll.filter(p=>p.month===month);
-  const total = list.reduce((s,p)=>s+p.net,0);
+  const totalIncome = list.reduce((s,p)=>s+(p.base+p.ot+(p.holiday||0)+(p.commission||0)+(p.outsite||0)+p.bonus),0);
+  const totalDeduct = list.reduce((s,p)=>s+(p.social+(p.deductLeave||0)+(p.fund||0)+(p.loan||0)+p.deduct),0);
+  const totalNet = list.reduce((s,p)=>s+p.net,0);
   const totalSocial = list.reduce((s,p)=>s+p.social,0);
   document.getElementById('payStats').innerHTML = `
     <div class="stat"><div class="stat-label">พนักงาน</div><div class="stat-val">${list.length}</div><div class="stat-sub">คน</div></div>
-    <div class="stat"><div class="stat-label">รวมสุทธิ</div><div class="stat-val" style="color:var(--teal)">${(total/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
-    <div class="stat"><div class="stat-label">ประกันสังคม</div><div class="stat-val" style="color:var(--amber)">${(totalSocial/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
-    <div class="stat"><div class="stat-label">เดือน</div><div class="stat-val" style="font-size:14px">${month}</div></div>
+    <div class="stat"><div class="stat-label">รวมรายได้</div><div class="stat-val" style="color:var(--blue);font-size:18px">${(totalIncome/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
+    <div class="stat"><div class="stat-label">รวมรายหัก</div><div class="stat-val" style="color:var(--amber);font-size:18px">${(totalDeduct/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
+    <div class="stat"><div class="stat-label">รวมสุทธิ</div><div class="stat-val" style="color:var(--teal);font-size:18px">${(totalNet/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
+    <div class="stat"><div class="stat-label">สปส.รวม</div><div class="stat-val" style="color:var(--amber);font-size:18px">${(totalSocial/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
   `;
   const t=document.getElementById('payTable');
-  t.innerHTML=`<thead><tr><th>ชื่อ</th><th>เงินเดือน</th><th>OT</th><th>โบนัส</th><th>ประกันสังคม</th><th>หักอื่นๆ</th><th>สุทธิ</th><th class="edit-only"></th></tr></thead><tbody>${
-    list.length?list.map(p=>`<tr>
-      <td style="font-weight:500">${p.employee}</td>
-      <td>${num(p.base)}</td><td>${num(p.ot)}</td><td>${num(p.bonus)}</td>
-      <td style="color:var(--amber)">${num(p.social)}</td><td>${num(p.deduct)}</td>
-      <td style="font-weight:500;color:var(--teal)">${num(p.net)}</td>
-      <td class="edit-only"><button class="btn btn-danger btn-sm" onclick="deletePay('${p.id}')"><i class="ti ti-trash"></i></button></td>
-    </tr>`).join(''):`<tr><td colspan="8">${empty('ไม่มีข้อมูลเดือนนี้')}</td></tr>`
+  t.innerHTML=`<thead><tr><th>ชื่อ</th><th>ฐานเงินเดือน</th><th>OT</th><th>วันหยุด</th><th>คอมมิชชั่น</th><th>รายได้รวม</th><th>หัก สปส.</th><th>หักรวม</th><th style="color:var(--teal)">สุทธิ</th><th class="edit-only"></th></tr></thead><tbody>${
+    list.length?list.map(p=>{
+      const income=p.base+p.ot+(p.holiday||0)+(p.commission||0)+(p.outsite||0)+p.bonus;
+      const deductAll=p.social+(p.deductLeave||0)+(p.fund||0)+(p.loan||0)+p.deduct;
+      return `<tr>
+        <td style="font-weight:500">${p.employee}</td>
+        <td>${num(p.base)}</td>
+        <td>${p.ot?num(p.ot):'—'}</td>
+        <td>${p.holiday?num(p.holiday):'—'}</td>
+        <td>${p.commission?num(p.commission):'—'}</td>
+        <td style="color:var(--blue);font-weight:500">${num(income)}</td>
+        <td style="color:var(--amber)">${num(p.social)}</td>
+        <td style="color:var(--red)">${num(deductAll)}</td>
+        <td style="font-weight:600;color:var(--teal)">${num(p.net)}</td>
+        <td class="edit-only" style="white-space:nowrap">
+          <button class="btn btn-ghost btn-sm" onclick="printPaySlip('${p.id}')"><i class="ti ti-printer"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="deletePay('${p.id}')"><i class="ti ti-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join(''):`<tr><td colspan="10">${empty('ไม่มีข้อมูลเดือนนี้')}</td></tr>`
   }</tbody>`;
 }
 
@@ -1680,18 +1830,119 @@ function deleteDoc(id){DB.documents=DB.documents.filter(d=>d.id!==id);save();pus
 // RECRUITMENT
 // ══════════════════════════════════
 function saveCandidate() {
+  const existId = document.getElementById('candId').value;
   const obj={
-    id:uid(),
+    id: existId || uid(),
     name:document.getElementById('candName').value.trim(),
+    nickname:document.getElementById('candNickname').value.trim(),
+    phone:document.getElementById('candPhone').value.trim(),
+    line:document.getElementById('candLine').value.trim(),
+    age:document.getElementById('candAge').value,
+    birth:document.getElementById('candBirth').value,
+    address:document.getElementById('candAddress').value.trim(),
     position:document.getElementById('candPosition').value.trim(),
     team:document.getElementById('candTeam').value,
-    status:document.getElementById('candStatus').value,
     date:document.getElementById('candDate').value,
-    phone:document.getElementById('candPhone').value.trim(),
+    salaryExpect:document.getElementById('candSalaryExpect').value,
+    education:document.getElementById('candEducation').value.trim(),
+    exp:document.getElementById('candExp').value,
+    workHistory:document.getElementById('candWorkHistory').value.trim(),
+    resume:document.getElementById('candResume').value.trim(),
+    status:document.getElementById('candStatus').value,
+    interviewDate:document.getElementById('candInterviewDate').value,
+    interviewTime:document.getElementById('candInterviewTime').value,
+    score:document.getElementById('candScore').value,
+    decision:document.getElementById('candDecision').value,
+    startDate:document.getElementById('candStartDate').value,
     note:document.getElementById('candNote').value.trim()
   };
   if(!obj.name)return alert('กรุณากรอกชื่อผู้สมัคร');
-  DB.candidates.push(obj);save();pushToSheets();closeModal('modalCandidate');renderPipeline();
+  if(existId){
+    const i=DB.candidates.findIndex(c=>c.id===existId);
+    if(i>=0)DB.candidates[i]=obj;
+  } else {
+    DB.candidates.push(obj);
+  }
+  document.getElementById('candId').value='';
+  save();pushToSheets();closeModal('modalCandidate');renderPipeline();
+}
+
+function editCandFromProfile() {
+  const id = document.getElementById('profEditBtn').dataset.id;
+  closeModal('modalCandProfile');
+  openCandModal(id);
+}
+
+function openCandModal(id) {
+  const c = id ? DB.candidates.find(x=>x.id===id) : null;
+  document.getElementById('candId').value = c ? c.id : '';
+  document.getElementById('candModalTitle').textContent = c ? 'แก้ไขผู้สมัคร' : 'เพิ่มผู้สมัคร';
+  const g = (fid, val='') => { const el=document.getElementById(fid); if(el) el.value=val; };
+  g('candName', c?.name);g('candNickname',c?.nickname);g('candPhone',c?.phone);
+  g('candLine',c?.line);g('candAge',c?.age);g('candBirth',c?.birth);
+  g('candAddress',c?.address);g('candPosition',c?.position);g('candSalaryExpect',c?.salaryExpect);
+  g('candEducation',c?.education);g('candExp',c?.exp);g('candWorkHistory',c?.workHistory);
+  g('candResume',c?.resume);g('candInterviewDate',c?.interviewDate);g('candInterviewTime',c?.interviewTime);
+  g('candScore',c?.score);g('candDecision',c?.decision);g('candStartDate',c?.startDate);
+  g('candNote',c?.note);
+  if(c){document.getElementById('candTeam').value=c.team;document.getElementById('candStatus').value=c.status;}
+  openModal('modalCandidate');
+}
+
+function viewCandidate(id) {
+  const c = DB.candidates.find(x=>x.id===id);
+  if(!c) return;
+  const statusColor={รับใบสมัคร:'gray',นัดสัมภาษณ์:'blue',สัมภาษณ์แล้ว:'amber',รอผล:'purple',ผ่าน:'teal',ไม่ผ่าน:'red'};
+  const decisionColor={รับเข้าทำงาน:'teal',ไม่รับ:'red',รอสำรอง:'amber'};
+  const nm = c.nickname ? c.name+' ('+c.nickname+')' : c.name;
+  const initl = (c.nickname||c.name||'?').slice(0,2);
+  document.getElementById('profAvatar').textContent = initl;
+  document.getElementById('profName').textContent = nm;
+  document.getElementById('profSub').textContent = (c.position||'')+' · '+(c.team||'');
+  document.getElementById('profEditBtn').dataset.id = id;
+
+  // status bar
+  document.getElementById('profStatusBar').innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <span class="badge badge-${statusColor[c.status]||'gray'}">${c.status}</span>
+      ${c.decision?`<span class="badge badge-${decisionColor[c.decision]||'gray'}">${c.decision}</span>`:''}
+      ${c.score?`<span class="badge badge-blue">⭐ ${c.score}/10</span>`:''}
+    </div>`;
+
+  // ส่วนตัว
+  const row = (l,v) => v?`<div style="color:var(--text3)">${l}</div><div style="font-weight:500">${v}</div>`:'';
+  document.getElementById('profPersonal').innerHTML =
+    row('เบอร์โทร', c.phone ? `<a href="tel:${c.phone}" style="color:var(--pink)">${c.phone}</a>` : '') +
+    row('LINE', c.line) + row('อายุ', c.age?c.age+' ปี':'') +
+    row('วันเกิด', c.birth?fmtDate(c.birth):'') +
+    row('ที่อยู่', c.address);
+
+  // สมัครงาน
+  document.getElementById('profJob').innerHTML =
+    row('วันที่สมัคร', c.date?fmtDate(c.date):'') +
+    row('เงินเดือนที่ต้องการ', c.salaryExpect?Number(c.salaryExpect).toLocaleString()+' บ.':'') +
+    row('วุฒิการศึกษา', c.education) +
+    row('ประสบการณ์', c.exp?c.exp+' ปี':'') +
+    row('ประวัติการทำงาน', c.workHistory);
+
+  // Resume
+  document.getElementById('profResumeRow').innerHTML = c.resume
+    ? `<a href="${c.resume}" target="_blank" class="btn btn-ghost btn-sm" style="width:fit-content"><i class="ti ti-file-text"></i>ดู Resume / Portfolio</a>`
+    : '';
+
+  // สัมภาษณ์
+  document.getElementById('profInterview').innerHTML =
+    row('วันนัดสัมภาษณ์', c.interviewDate?fmtDate(c.interviewDate)+(c.interviewTime?' เวลา '+c.interviewTime:''):'') +
+    row('คะแนน', c.score?c.score+'/10':'') +
+    row('ผลการตัดสินใจ', c.decision) +
+    row('วันเริ่มงาน', c.startDate?fmtDate(c.startDate):'');
+
+  // note
+  document.getElementById('profNote').innerHTML = c.note
+    ? `<div style="background:var(--gray-l);border-radius:var(--r);padding:10px 12px;font-size:13px;color:var(--text2)"><strong>บันทึก:</strong> ${c.note}</div>`
+    : '';
+
+  document.getElementById('modalCandProfile').classList.add('open');
 }
 
 function renderPipeline() {
@@ -1699,21 +1950,28 @@ function renderPipeline() {
   const colors={รับใบสมัคร:'gray',นัดสัมภาษณ์:'blue',สัมภาษณ์แล้ว:'amber',รอผล:'purple',ผ่าน:'teal',ไม่ผ่าน:'red'};
   document.getElementById('pipeline').innerHTML = stages.map(s=>{
     const cards=DB.candidates.filter(c=>c.status===s);
-    return `<div style="background:var(--bg);border-radius:var(--rl);padding:10px">
+    return `<div style="background:var(--bg);border-radius:var(--rl);padding:10px;min-width:0">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
         <span class="badge badge-${colors[s]}">${s}</span>
         <span style="font-size:11px;color:var(--text3)">${cards.length}</span>
       </div>
-      ${cards.length?cards.map(c=>`<div class="card" style="margin-bottom:6px;padding:10px">
-        <div style="font-weight:500;font-size:13px">${c.name}</div>
-        <div style="font-size:11px;color:var(--text3);margin:2px 0">${c.position} · ${c.team}</div>
-        <div style="display:flex;gap:4px;margin-top:6px" class="edit-only">
-          <select style="flex:1;border:0.5px solid var(--border2);border-radius:var(--r);padding:3px;font-size:11px" onchange="moveCandidate('${c.id}',this.value)">
-            ${stages.map(st=>`<option${st===s?' selected':''}>${st}</option>`).join('')}
-          </select>
-          <button class="btn btn-danger btn-sm" onclick="deleteCand('${c.id}')"><i class="ti ti-trash"></i></button>
-        </div>
-      </div>`).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px">ว่าง</div>'}
+      ${cards.length?cards.map(c=>{
+        const score=c.score?`<span style="font-size:10px;color:var(--blue)">⭐${c.score}/10</span>`:'';
+        const decision=c.decision?`<span class="badge badge-${c.decision==='รับเข้าทำงาน'?'teal':c.decision==='ไม่รับ'?'red':'amber'}" style="font-size:10px">${c.decision}</span>`:'';
+        return `<div class="card" style="margin-bottom:6px;padding:10px;cursor:pointer" onclick="viewCandidate('${c.id}')">
+          <div style="font-weight:500;font-size:13px">${c.name}${c.nickname?' ('+c.nickname+')':''}</div>
+          <div style="font-size:11px;color:var(--text3);margin:2px 0">${c.position||'—'} · ${c.team||'—'}</div>
+          ${c.phone?`<div style="font-size:11px;color:var(--text3)">${c.phone}</div>`:''}
+          <div style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap">${score}${decision}</div>
+          <div style="display:flex;gap:4px;margin-top:6px" class="edit-only" onclick="event.stopPropagation()">
+            <select style="flex:1;border:0.5px solid var(--border2);border-radius:var(--r);padding:3px;font-size:11px" onchange="moveCandidate('${c.id}',this.value)">
+              ${stages.map(st=>`<option${st===s?' selected':''}>${st}</option>`).join('')}
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="openCandModal('${c.id}')"><i class="ti ti-edit"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="deleteCand('${c.id}')"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`;
+      }).join(''):'<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px">ว่าง</div>'}
     </div>`;
   }).join('');
 }
@@ -2090,42 +2348,81 @@ function printPaySlip(id) {
   const emp=DB.employees.find(e=>e.nickname===p.employee)||{};
   const win=window.open('','_blank');
   const monthTh=(()=>{const d=new Date(p.month+'-01');return MONTHS_TH[d.getMonth()]+' '+(d.getFullYear()+543);})();
+  const n=v=>(Number(v)||0).toLocaleString();
+  const _p=f=>(Number(p[f])||0);
+  const income=_p('base')+_p('ot')+_p('holiday')+_p('commission')+_p('outsite')+_p('bonus');
+  const deductAll=_p('deductLeave')+_p('social')+_p('fund')+_p('loan')+_p('deduct');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>สลิปเงินเดือน — ${p.employee}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>ใบแจ้งรายการเงินเดือน — ${p.employee}</title>
   <style>
-    body{font-family:'Sarabun',sans-serif;padding:40px;font-size:14px;color:#333;max-width:500px;margin:0 auto}
-    .header{text-align:center;margin-bottom:24px;border-bottom:2px solid #333;padding-bottom:16px}
-    .co{font-size:18px;font-weight:600;margin-bottom:4px}
-    .title{font-size:15px;font-weight:500;color:#555}
-    .emp-row{display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #eee}
-    .items{width:100%}
-    .item{display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid #f0f0f0;font-size:13px}
-    .item.plus{color:#1D9E75}
-    .item.minus{color:#BA7517}
-    .total{display:flex;justify-content:space-between;padding:12px 0;font-size:16px;font-weight:600;border-top:2px solid #333;margin-top:4px;color:#1D9E75}
-    .sign-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:60px;text-align:center}
-    .sign-line{border-top:1px solid #333;padding-top:8px;font-size:12px;color:#666}
-    @media print{body{padding:20px}}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Sarabun',sans-serif;padding:32px;font-size:13px;color:#333;max-width:680px;margin:0 auto}
+    .co-header{text-align:center;margin-bottom:20px}
+    .co-name{font-size:16px;font-weight:600}
+    .co-tax{font-size:12px;color:#555;margin:2px 0}
+    .co-addr{font-size:11px;color:#777}
+    .doc-title{text-align:center;font-size:15px;font-weight:600;border-top:2px solid #333;border-bottom:2px solid #333;padding:6px 0;margin-bottom:16px}
+    .meta{display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;margin-bottom:12px;font-size:12px}
+    .meta-row{display:flex;gap:6px}
+    .meta-label{color:#777;width:90px;flex-shrink:0}
+    .meta-val{font-weight:500}
+    .slip-body{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #ddd}
+    .slip-col{padding:0}
+    .slip-header{background:#f5f5f5;padding:6px 10px;font-weight:600;font-size:12px;border-bottom:1px solid #ddd;text-align:center}
+    .slip-row{display:grid;grid-template-columns:1fr auto;padding:5px 10px;border-bottom:0.5px solid #eee;font-size:12px}
+    .slip-row:last-child{border-bottom:none}
+    .slip-row .amt{text-align:right;min-width:80px}
+    .slip-divider{width:1px;background:#ddd}
+    .slip-total{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #ddd}
+    .slip-total-cell{padding:6px 10px;font-size:12px;font-weight:600}
+    .net-row{background:#f0f7ff;border-top:2px solid #333;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600}
+    .sign-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:50px;text-align:center}
+    .sign-box .line{border-top:1px solid #333;padding-top:6px;font-size:11px;color:#666;margin-top:8px}
+    .sign-box .date{font-size:11px;color:#888;margin-top:4px}
+    @media print{body{padding:16px}@page{size:A4;margin:12mm}}
   </style></head><body>
-  <div class="header">
-    <div class="co">AKANE Collagen Co., Ltd.</div>
-    <div class="title">สลิปเงินเดือน เดือน ${monthTh}</div>
+  <div class="co-header">
+    <div class="co-name">บริษัท อากาเนะ คอลลาเจน จำกัด</div>
+    <div class="co-tax">เลขประจำตัวผู้เสียภาษี 0305566004013</div>
+    <div class="co-addr">969/16 หมู่ที่ 3 ต.จอหอ อ.เมืองนครราชสีมา นครราชสีมา 30310</div>
   </div>
-  <div class="emp-row">
-    <div><strong>${p.employee}</strong>${emp.name?' · '+emp.name:''}<br><span style="font-size:12px;color:#888">${emp.position||''} · ${emp.team||''}</span></div>
-    <div style="text-align:right;font-size:12px;color:#888">รหัส: ${emp.id||'—'}</div>
+  <div class="doc-title">ใบแจ้งรายการเงินเดือน&emsp;ประจำเดือน ${monthTh}</div>
+  <div class="meta">
+    <div class="meta-row"><div class="meta-label">รหัสพนักงาน</div><div class="meta-val">${p.empCode||emp.id||'—'}</div></div>
+    <div class="meta-row"><div class="meta-label">ชื่อ - นามสกุล</div><div class="meta-val">${emp.name||p.employee}</div></div>
+    <div class="meta-row"><div class="meta-label">แผนก</div><div class="meta-val">${emp.team||'—'}</div></div>
+    <div class="meta-row"><div class="meta-label">ตำแหน่ง</div><div class="meta-val">${emp.position||'—'}</div></div>
   </div>
-  <table class="items" style="width:100%">
-    <tr class="item plus"><td>เงินเดือน</td><td style="text-align:right">${(p.base||0).toLocaleString()} บ.</td></tr>
-    ${p.ot?`<tr class="item plus"><td>OT / เพิ่มพิเศษ</td><td style="text-align:right">${(p.ot).toLocaleString()} บ.</td></tr>`:''}
-    ${p.bonus?`<tr class="item plus"><td>โบนัส</td><td style="text-align:right">${(p.bonus).toLocaleString()} บ.</td></tr>`:''}
-    <tr class="item minus"><td>หักประกันสังคม (5% สูงสุด 875 บ.)</td><td style="text-align:right">-${(p.social||0).toLocaleString()} บ.</td></tr>
-    ${p.deduct?`<tr class="item minus"><td>หักอื่นๆ</td><td style="text-align:right">-${(p.deduct).toLocaleString()} บ.</td></tr>`:''}
-  </table>
-  <div class="total"><span>รวมสุทธิ</span><span>${(p.net||0).toLocaleString()} บ.</span></div>
+  <div class="slip-body">
+    <div class="slip-col">
+      <div class="slip-header">รายการรายได้</div>
+      <div class="slip-row"><span>ฐานเงินเดือน</span><span class="amt">${n(p.base)}</span></div>
+      <div class="slip-row"><span>ค่าล่วงเวลา</span><span class="amt">${n(p.ot)}</span></div>
+      <div class="slip-row"><span>ค่าทำงานวันหยุด</span><span class="amt">${n(p.holiday)}</span></div>
+      <div class="slip-row"><span>ค่าคอมมิชชั่น</span><span class="amt">${n(p.commission)}</span></div>
+      <div class="slip-row"><span>ค่าทำงานนอกสถานที่</span><span class="amt">${n(p.outsite)}</span></div>
+      <div class="slip-row"><span>โบนัส / รายได้อื่น</span><span class="amt">${n(p.bonus)}</span></div>
+    </div>
+    <div class="slip-col" style="border-left:1px solid #ddd">
+      <div class="slip-header">รายการหัก</div>
+      <div class="slip-row"><span>หักลาเกิน/ไม่รับค่าจ้าง</span><span class="amt">${n(p.deductLeave)}</span></div>
+      <div class="slip-row"><span>หักสมทบประกันสังคม</span><span class="amt">${n(p.social)}</span></div>
+      <div class="slip-row"><span>หักกองทุน กยศ./กรอ.</span><span class="amt">${n(p.fund)}</span></div>
+      <div class="slip-row"><span>เงินกู้บริษัท</span><span class="amt">${n(p.loan)}</span></div>
+      <div class="slip-row"><span>หักอื่นๆ</span><span class="amt">${n(p.deduct)}</span></div>
+      <div class="slip-row" style="visibility:hidden"><span>-</span><span class="amt">-</span></div>
+    </div>
+  </div>
+  <div class="slip-total">
+    <div class="slip-total-cell">รวมรายได้ทั้งสิ้น <span style="float:right">${income.toLocaleString()}</span></div>
+    <div class="slip-total-cell" style="border-left:1px solid #ddd">รวมรายหักทั้งสิ้น <span style="float:right">${deductAll.toLocaleString()}</span></div>
+  </div>
+  <div class="net-row"><span>เงินได้สุทธิประจำเดือน</span><span style="font-size:18px;color:#1D9E75">${(income-deductAll).toLocaleString()}</span></div>
   <div class="sign-row">
-    <div><div style="height:50px"></div><div class="sign-line">ลายมือชื่อพนักงาน<br>(${p.employee})</div></div>
-    <div><div style="height:50px"></div><div class="sign-line">ลายมือชื่อผู้จ่าย<br>AKANE HR</div></div>
+    <div class="sign-box"><div style="height:44px"></div><div class="line">ลายมือชื่อพนักงาน<br>(${emp.name||p.employee})</div><div class="date">วันที่ .....................</div></div>
+    <div class="sign-box"><div style="height:44px"></div><div class="line">ลายมือชื่อผู้จ่ายเงิน<br>(.............................)</div><div class="date">วันที่ .....................</div></div>
+    <div class="sign-box"><div style="height:44px"></div><div class="line">อนุมัติโดย<br>(.............................)</div><div class="date">วันที่ .....................</div></div>
   </div>
   <script>window.onload=()=>{window.print();}<\/script>
   </body></html>`);
@@ -2176,6 +2473,128 @@ function renderPayHistory() {
 // ══════════════════════════════════
 // TRAINING SEARCH (override)
 // ══════════════════════════════════
+
+// ══════════════════════════════════
+// PAYROLL DAILY VIEW
+// ══════════════════════════════════
+// force-parse ทุก field ของ payroll เป็น number เสมอ
+function pNum(v) { return Number(v) || 0; }
+
+function calcIncome(p) {
+  return pNum(p.base)+pNum(p.ot)+pNum(p.holiday)+pNum(p.commission)+pNum(p.outsite)+pNum(p.bonus);
+}
+function calcDeduct(p) {
+  return pNum(p.deductLeave)+pNum(p.social)+pNum(p.fund)+pNum(p.loan)+pNum(p.deduct);
+}
+function calcNet(p) { return calcIncome(p) - calcDeduct(p); }
+
+function renderPayDaily() {
+  const el = document.getElementById('payDailyView');
+  if (!el) return;
+
+  // search bar สำหรับ filter ย้อนหลัง
+  if (!document.getElementById('payDailyFilter')) {
+    el.insertAdjacentHTML('beforebegin', `
+      <div class="search-bar" id="payDailyFilterBar">
+        <input type="month" id="payDailyFrom" onchange="renderPayDaily()" placeholder="จาก">
+        <input type="month" id="payDailyTo" onchange="renderPayDaily()" placeholder="ถึง">
+        <input id="payDailyEmpSearch" placeholder="ค้นหาชื่อ..." oninput="renderPayDaily()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-size:13px;flex:1">
+        <button class="btn btn-ghost btn-sm" onclick="clearPayDailyFilter()">ล้าง</button>
+      </div>
+      <div id="payDailyFilter"></div>
+    `);
+  }
+
+  const fromM = document.getElementById('payDailyFrom')?.value || '';
+  const toM   = document.getElementById('payDailyTo')?.value   || '';
+  const empQ  = (document.getElementById('payDailyEmpSearch')?.value || '').toLowerCase();
+
+  // กรองข้อมูล
+  let filtered = DB.payroll.filter(p => {
+    if (fromM && p.month < fromM) return false;
+    if (toM   && p.month > toM)   return false;
+    if (empQ  && !(p.employee||'').toLowerCase().includes(empQ)) return false;
+    return true;
+  });
+
+  const months = [...new Set(filtered.map(p=>p.month))].sort((a,b)=>b.localeCompare(a));
+
+  const target = document.getElementById('payDailyFilter') || el;
+  if (!months.length) { target.innerHTML = empty('ไม่มีข้อมูลในช่วงเวลานี้'); return; }
+
+  target.innerHTML = months.map(month => {
+    const list = filtered.filter(p=>p.month===month);
+    const totalIncome = list.reduce((s,p)=>s+calcIncome(p), 0);
+    const totalDeduct = list.reduce((s,p)=>s+calcDeduct(p), 0);
+    const totalNet    = list.reduce((s,p)=>s+calcNet(p),    0);
+    const totalSocial = list.reduce((s,p)=>s+pNum(p.social),0);
+    const d = new Date(month+'-01');
+    const monthTh = MONTHS_TH[d.getMonth()] + ' ' + (d.getFullYear()+543);
+
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:16px;font-weight:500">${monthTh}</div>
+        <div style="display:flex;gap:16px;font-size:13px;flex-wrap:wrap">
+          <div><span style="color:var(--text3)">รายได้รวม</span> <strong style="color:var(--blue)">${totalIncome.toLocaleString()}</strong></div>
+          <div><span style="color:var(--text3)">รายหักรวม</span> <strong style="color:var(--red)">${totalDeduct.toLocaleString()}</strong></div>
+          <div><span style="color:var(--text3)">สปส.</span> <strong style="color:var(--amber)">${totalSocial.toLocaleString()}</strong></div>
+          <div><span style="color:var(--text3)">สุทธิ</span> <strong style="color:var(--teal)">${totalNet.toLocaleString()}</strong></div>
+          <span style="color:var(--text3)">${list.length} คน</span>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 10px;background:var(--gray-l);color:var(--text2)">ชื่อ</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--text2)">ฐานเงินเดือน</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--text2)">OT</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--text2)">วันหยุด</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--text2)">คอม</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--blue);font-weight:600">รายได้รวม</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--amber)">สปส.</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--red)">หักรวม</th>
+            <th style="text-align:right;padding:6px 10px;background:var(--gray-l);color:var(--teal);font-weight:600">สุทธิ</th>
+            <th style="background:var(--gray-l);padding:6px 4px" class="edit-only"></th>
+          </tr></thead>
+          <tbody>
+          ${list.map(p=>{
+            const inc = calcIncome(p);
+            const ded = calcDeduct(p);
+            const net = inc - ded;
+            return `<tr style="border-bottom:0.5px solid var(--border)">
+              <td style="padding:7px 10px;font-weight:500">${p.employee}${p.empCode?'<br><span style="font-size:10px;color:var(--text3)">'+p.empCode+'</span>':''}</td>
+              <td style="text-align:right;padding:7px 10px">${pNum(p.base).toLocaleString()}</td>
+              <td style="text-align:right;padding:7px 10px;color:${pNum(p.ot)?'var(--teal)':'var(--text3)'}">${pNum(p.ot)?pNum(p.ot).toLocaleString():'—'}</td>
+              <td style="text-align:right;padding:7px 10px;color:${pNum(p.holiday)?'var(--teal)':'var(--text3)'}">${pNum(p.holiday)?pNum(p.holiday).toLocaleString():'—'}</td>
+              <td style="text-align:right;padding:7px 10px;color:${pNum(p.commission)?'var(--blue)':'var(--text3)'}">${pNum(p.commission)?pNum(p.commission).toLocaleString():'—'}</td>
+              <td style="text-align:right;padding:7px 10px;font-weight:500;color:var(--blue)">${inc.toLocaleString()}</td>
+              <td style="text-align:right;padding:7px 10px;color:var(--amber)">${pNum(p.social).toLocaleString()}</td>
+              <td style="text-align:right;padding:7px 10px;color:var(--red)">${ded.toLocaleString()}</td>
+              <td style="text-align:right;padding:7px 10px;font-weight:600;color:var(--teal)">${net.toLocaleString()}</td>
+              <td class="edit-only" style="padding:4px"><button class="btn btn-ghost btn-sm" onclick="printPaySlip('${p.id}')"><i class="ti ti-printer"></i></button></td>
+            </tr>`;
+          }).join('')}
+          <tr style="background:var(--teal-l);font-weight:600">
+            <td style="padding:8px 10px" colspan="5">รวม ${list.length} คน</td>
+            <td style="text-align:right;padding:8px 10px;color:var(--blue)">${totalIncome.toLocaleString()}</td>
+            <td style="text-align:right;padding:8px 10px;color:var(--amber)">${totalSocial.toLocaleString()}</td>
+            <td style="text-align:right;padding:8px 10px;color:var(--red)">${totalDeduct.toLocaleString()}</td>
+            <td style="text-align:right;padding:8px 10px;color:var(--teal)">${totalNet.toLocaleString()}</td>
+            <td class="edit-only"></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clearPayDailyFilter() {
+  const f=['payDailyFrom','payDailyTo','payDailyEmpSearch'];
+  f.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderPayDaily();
+}
+
 // ══════════════════════════════════
 // INIT
 // ══════════════════════════════════
