@@ -218,9 +218,20 @@ tr:hover td{background:var(--gray-l)}
 <!-- ── DASHBOARD ── -->
 <div class="page active" id="page-dashboard">
   <div style="padding:2rem">
-    <div class="page-header">
-      <div class="page-title">ภาพรวม HR</div>
-      <div class="page-sub" id="dashDate"></div>
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div class="page-title">ภาพรวม HR</div>
+        <div class="page-sub" id="dashDate"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:6px 10px">
+          <i class="ti ti-calendar" style="font-size:14px;color:var(--text3)"></i>
+          <input type="date" id="dashFrom" onchange="renderDashboard()" style="border:none;outline:none;font-size:12px;color:var(--text);background:transparent;font-family:var(--ff)">
+          <span style="color:var(--text3);font-size:12px">ถึง</span>
+          <input type="date" id="dashTo" onchange="renderDashboard()" style="border:none;outline:none;font-size:12px;color:var(--text);background:transparent;font-family:var(--ff)">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="resetDashDate()" title="รีเซ็ต"><i class="ti ti-refresh"></i>เดือนนี้</button>
+      </div>
     </div>
     <div class="stats" id="dashStats"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -1084,19 +1095,35 @@ function updateEmpDatalist() {
 // ══════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════
+function resetDashDate() {
+  const from = document.getElementById('dashFrom');
+  const to = document.getElementById('dashTo');
+  if (from) from.value = thisMonth()+'-01';
+  if (to) to.value = thisMonth()+'-31';
+  renderDashboard();
+}
+
 function renderDashboard() {
-  document.getElementById('dashDate').textContent = `วันที่ ${fmtDate(todayStr())}`;
+  const fromEl = document.getElementById('dashFrom');
+  const toEl = document.getElementById('dashTo');
+  const fromDate = fromEl?.value || (thisMonth()+'-01');
+  const toDate = toEl?.value || (thisMonth()+'-31');
+  const rangeLabel = fromDate === toDate
+    ? `วันที่ ${fmtDate(fromDate)}`
+    : `${fmtDate(fromDate)} — ${fmtDate(toDate)}`;
+  document.getElementById('dashDate').textContent = rangeLabel;
+
   const activeEmp = DB.employees.filter(e => e.status === 'active').length;
-  const thisMonthLeave = DB.leave.filter(l => l.date >= thisMonth()+'-01' && l.date <= thisMonth()+'-31');
-  const todayAtt = DB.attendance.filter(a => a.date === todayStr());
+  const filteredLeave = DB.leave.filter(l => l.date >= fromDate && l.date <= toDate);
+  const filteredAtt = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
   const totalPay = DB.payroll.filter(p => p.month === thisMonth()).reduce((s,p) => s + (p.net||0), 0);
   document.getElementById('dashStats').innerHTML = `
     <div class="stat"><div class="stat-label">พนักงานทั้งหมด</div><div class="stat-val">${activeEmp}</div><div class="stat-sub">คน (active)</div></div>
-    <div class="stat"><div class="stat-label">ลาเดือนนี้</div><div class="stat-val" style="color:var(--pink)">${thisMonthLeave.length}</div><div class="stat-sub">รายการ</div></div>
-    <div class="stat"><div class="stat-label">บันทึกวันนี้</div><div class="stat-val" style="color:var(--teal)">${todayAtt.length}</div><div class="stat-sub">คน</div></div>
+    <div class="stat"><div class="stat-label">ลาในช่วงที่เลือก</div><div class="stat-val" style="color:var(--pink)">${filteredLeave.length}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat"><div class="stat-label">Attendance ในช่วง</div><div class="stat-val" style="color:var(--teal)">${filteredAtt.length}</div><div class="stat-sub">รายการ</div></div>
     <div class="stat"><div class="stat-label">Payroll เดือนนี้</div><div class="stat-val" style="color:var(--blue)">${(totalPay/1000).toFixed(0)}K</div><div class="stat-sub">บาทสุทธิ</div></div>
   `;
-  const recentLeave = [...DB.leave].sort((a,b) => b.date?.localeCompare(a.date||'')||0).slice(0,5);
+  const recentLeave = [...filteredLeave].sort((a,b) => b.date?.localeCompare(a.date||'')||0).slice(0,5);
   document.getElementById('dashLeaveList').innerHTML = recentLeave.length
     ? recentLeave.map(l => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
         <div style="display:flex;align-items:center;gap:8px">
@@ -1105,16 +1132,16 @@ function renderDashboard() {
         </div>
         ${badgeLeave(l.type)}
       </div>`).join('')
-    : empty('ยังไม่มีข้อมูล');
+    : empty('ไม่มีข้อมูลการลาในช่วงที่เลือก');
 
   // alerts
   const alerts = [];
   DB.employees.filter(e => e.status === 'active').forEach(emp => {
-    const leaves = DB.leave.filter(l => l.employee === emp.nickname);
-    const sick = leaves.filter(l => l.type === 'ลาป่วย').reduce((s,l) => s+(l.days||1),0);
+    const leaves = DB.leave.filter(l => l.employee === emp.nickname && l.date >= fromDate && l.date <= toDate);
+    const sick = leaves.filter(l => l.type === 'ลาป่วย').reduce((s,l) => s+(Number(l.days)||1),0);
     const absent = leaves.filter(l => l.type === 'ขาดงาน').length;
-    if (sick >= 5) alerts.push(`<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ลาป่วย ${sick} วัน</div>`);
-    if (absent >= 2) alerts.push(`<div class="alert alert-error"><i class="ti ti-x" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ขาดงาน ${absent} ครั้ง</div>`);
+    if (sick >= 3) alerts.push(`<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ลาป่วย ${sick} วัน ในช่วงที่เลือก</div>`);
+    if (absent >= 1) alerts.push(`<div class="alert alert-error"><i class="ti ti-x" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ขาดงาน ${absent} ครั้ง ในช่วงที่เลือก</div>`);
   });
   DB.documents.filter(d => d.expiry && d.expiry <= new Date(Date.now()+30*86400000).toISOString().slice(0,10)).forEach(d => {
     alerts.push(`<div class="alert alert-info"><i class="ti ti-file-text" style="font-size:14px;margin-top:2px"></i>เอกสาร "${d.name}" หมดอายุ ${fmtDate(d.expiry)}</div>`);
@@ -1126,13 +1153,13 @@ function renderDashboard() {
   document.getElementById('dashAlerts').innerHTML = alerts.length ? alerts.join('') : empty('ไม่มีแจ้งเตือน');
 
   // charts
-  renderDashCharts();
+  renderDashCharts(fromDate, toDate);
 }
 
-function renderDashCharts() {
+function renderDashCharts(fromDate, toDate) {
   const months = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setMonth(d.getMonth() - i);
+    const d = new Date((toDate||todayStr())+' 00:00:00'); d.setMonth(d.getMonth() - i);
     months.push(d.toISOString().slice(0,7));
   }
   const labels = months.map(m => { const d = new Date(m+'-01'); return MONTHS_TH[d.getMonth()]; });
@@ -1295,9 +1322,9 @@ function renderLeaveSummary() {
     <thead><tr><th>ชื่อ</th><th>ลาป่วย</th><th>ลากิจ</th><th>ลาพักร้อน</th><th>ขาดงาน</th><th>มาสาย</th><th>รวมวัน</th></tr></thead>
     <tbody>${names.map(n => {
       const ls = DB.leave.filter(l => l.employee === n);
-      const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(l.days||1),0);
-      const biz = ls.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(l.days||1),0);
-      const vac = ls.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(l.days||1),0);
+      const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
+      const biz = ls.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0);
+      const vac = ls.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
       const ab = ls.filter(l=>l.type==='ขาดงาน').length;
       const late = ls.filter(l=>l.type==='มาสาย').length;
       return `<tr><td style="font-weight:500">${n}</td><td>${sick}</td><td>${biz}</td><td>${vac}</td><td style="color:var(--red)">${ab}</td><td style="color:var(--purple)">${late}</td><td style="font-weight:500">${sick+biz+vac}</td></tr>`;
@@ -1309,7 +1336,7 @@ function renderLeaveQuota() {
   document.getElementById('leaveQuota').innerHTML = emps.length ? `<div class="card"><div class="tbl-wrap"><table>
     <thead><tr><th>ชื่อ</th><th>ลาพักร้อนใช้ไป</th><th>โควตา 6 วัน</th><th>คงเหลือ</th></tr></thead>
     <tbody>${emps.map(e => {
-      const used = DB.leave.filter(l => l.employee === e.nickname && l.type === 'ลาพักร้อน').reduce((s,l)=>s+(l.days||1),0);
+      const used = DB.leave.filter(l => l.employee === e.nickname && l.type === 'ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
       const remaining = Math.max(0, 6 - used);
       return `<tr><td style="font-weight:500">${e.nickname}</td>
         <td>${used} วัน</td>
@@ -1394,7 +1421,7 @@ function renderRisk() {
     const ls = DB.leave.filter(l=>l.employee===emp.nickname);
     const absent = ls.filter(l=>l.type==='ขาดงาน').length;
     const late = ls.filter(l=>l.type==='มาสาย').length;
-    const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(l.days||1),0);
+    const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
     const score = absent*20 + late*10 + Math.min(sick*3,20);
     return {...emp, absent, late, sick, score};
   }).sort((a,b)=>b.score-a.score);
@@ -1958,12 +1985,16 @@ function renderPipeline() {
       ${cards.length?cards.map(c=>{
         const score=c.score?`<span style="font-size:10px;color:var(--blue)">⭐${c.score}/10</span>`:'';
         const decision=c.decision?`<span class="badge badge-${c.decision==='รับเข้าทำงาน'?'teal':c.decision==='ไม่รับ'?'red':'amber'}" style="font-size:10px">${c.decision}</span>`:'';
-        return `<div class="card" style="margin-bottom:6px;padding:10px;cursor:pointer" onclick="viewCandidate('${c.id}')">
+        return `<div class="card" style="margin-bottom:6px;padding:10px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.10)'" onmouseout="this.style.boxShadow=''" onclick="viewCandidate('${c.id}')">
           <div style="font-weight:500;font-size:13px">${c.name}${c.nickname?' ('+c.nickname+')':''}</div>
           <div style="font-size:11px;color:var(--text3);margin:2px 0">${c.position||'—'} · ${c.team||'—'}</div>
           ${c.phone?`<div style="font-size:11px;color:var(--text3)">${c.phone}</div>`:''}
           <div style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap">${score}${decision}</div>
-          <div style="display:flex;gap:4px;margin-top:6px" class="edit-only" onclick="event.stopPropagation()">
+          <div style="display:flex;gap:4px;margin-top:6px;align-items:center" onclick="event.stopPropagation()">
+            <button class="btn btn-sm" style="background:var(--blue-l);color:var(--blue-d);font-size:11px;padding:4px 8px;flex:1" onclick="viewCandidate('${c.id}')"><i class="ti ti-id-badge"></i>ดูประวัติ</button>
+            ${c.resume?`<a href="${c.resume}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 8px" title="เปิด Resume"><i class="ti ti-file-cv"></i></a>`:''}
+          </div>
+          <div style="display:flex;gap:4px;margin-top:4px" class="edit-only" onclick="event.stopPropagation()">
             <select style="flex:1;border:0.5px solid var(--border2);border-radius:var(--r);padding:3px;font-size:11px" onchange="moveCandidate('${c.id}',this.value)">
               ${stages.map(st=>`<option${st===s?' selected':''}>${st}</option>`).join('')}
             </select>
@@ -2651,6 +2682,9 @@ const el4=document.getElementById('candDate');if(el4)el4.value=todayStr();
 const el5=document.getElementById('payMonthF');if(el5)el5.value=thisMonth();
 const el6=document.getElementById('kpiMonthF');if(el6)el6.value=thisMonth();
 const el7=document.getElementById('leaveFrom');if(el7)el7.value=todayStr();
+// Dashboard date range — default = เดือนนี้
+const dashFrom=document.getElementById('dashFrom');if(dashFrom)dashFrom.value=thisMonth()+'-01';
+const dashTo=document.getElementById('dashTo');if(dashTo)dashTo.value=thisMonth()+'-31';
 </script>
 </body>
 </html>
