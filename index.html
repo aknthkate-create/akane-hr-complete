@@ -1024,6 +1024,20 @@ function nav(page) {
 function openModal(id) {
   if (DB.settings.mode === 'view') return;
   document.getElementById(id).classList.add('open');
+  if (id === 'modalLeave') {
+    const li = document.getElementById('leaveId');
+    if (li && !li.value) {
+      document.getElementById('leaveEmp').value = '';
+      document.getElementById('leaveTypeF').value = 'ลาป่วย';
+      document.getElementById('leaveFrom').value = todayStr();
+      document.getElementById('leaveTo').value = '';
+      document.getElementById('leaveDays').value = 1;
+      document.getElementById('leaveNotify').value = '';
+      document.getElementById('leaveMedical').value = '';
+      document.getElementById('leaveImpact').value = '';
+      document.getElementById('leaveReason').value = '';
+    }
+  }
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
@@ -1095,11 +1109,18 @@ function updateEmpDatalist() {
 // ══════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════
+function lastDayOfMonth(ym) {
+  // ym = 'YYYY-MM', returns 'YYYY-MM-DD' last day
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return ym + '-' + String(last).padStart(2,'0');
+}
+
 function resetDashDate() {
   const from = document.getElementById('dashFrom');
   const to = document.getElementById('dashTo');
   if (from) from.value = thisMonth()+'-01';
-  if (to) to.value = thisMonth()+'-31';
+  if (to) to.value = lastDayOfMonth(thisMonth());
   renderDashboard();
 }
 
@@ -1107,7 +1128,7 @@ function renderDashboard() {
   const fromEl = document.getElementById('dashFrom');
   const toEl = document.getElementById('dashTo');
   const fromDate = fromEl?.value || (thisMonth()+'-01');
-  const toDate = toEl?.value || (thisMonth()+'-31');
+  const toDate = toEl?.value || lastDayOfMonth(thisMonth());
   const rangeLabel = fromDate === toDate
     ? `วันที่ ${fmtDate(fromDate)}`
     : `${fmtDate(fromDate)} — ${fmtDate(toDate)}`;
@@ -1285,6 +1306,9 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
+  // ปรับ leaveMonth filter ให้ตรงกับเดือนที่บันทึก เพื่อให้เห็นข้อมูลทันที
+  const lmEl = document.getElementById('leaveMonth');
+  if (lmEl && obj.date) lmEl.value = obj.date.slice(0,7);
   save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
 }
@@ -2672,19 +2696,19 @@ async function initAutoSync() {
   renderDashboard();
 }
 
-initAutoSync();
-
-// Set today defaults
+// Set defaults ก่อน initAutoSync เสมอ (ป้องกัน renderDashboard รันก่อน dashFrom/dashTo ถูก set)
 const el=document.getElementById('attDateF');if(el)el.value=todayStr();
 const el2=document.getElementById('coachDate');if(el2)el2.value=todayStr();
 const el3=document.getElementById('annDate');if(el3)el3.value=todayStr();
 const el4=document.getElementById('candDate');if(el4)el4.value=todayStr();
 const el5=document.getElementById('payMonthF');if(el5)el5.value=thisMonth();
 const el6=document.getElementById('kpiMonthF');if(el6)el6.value=thisMonth();
-const el7=document.getElementById('leaveFrom');if(el7)el7.value=todayStr();
-// Dashboard date range — default = เดือนนี้
+const elLM=document.getElementById('leaveMonth');if(elLM)elLM.value=thisMonth();
+// Dashboard date range — ต้อง set ก่อน initAutoSync
 const dashFrom=document.getElementById('dashFrom');if(dashFrom)dashFrom.value=thisMonth()+'-01';
-const dashTo=document.getElementById('dashTo');if(dashTo)dashTo.value=thisMonth()+'-31';
+const dashTo=document.getElementById('dashTo');if(dashTo)dashTo.value=lastDayOfMonth(thisMonth());
+
+initAutoSync();
 </script>
 </body>
 </html>
