@@ -927,6 +927,37 @@ tr:hover td{background:var(--gray-l)}
   </div>
 </div>
 
+
+<!-- Employee Profile Modal -->
+<div class="modal-overlay" id="modalEmpProfile" style="align-items:flex-start;padding:16px;overflow-y:auto">
+  <div class="modal" style="max-width:760px;width:100%;margin:auto;padding:0;overflow:hidden;border-radius:16px">
+    <!-- Header -->
+    <div id="epHeader" style="padding:1.5rem 1.5rem 1rem;display:flex;align-items:flex-start;gap:14px;position:relative">
+      <div id="epAvatar" class="avatar" style="width:56px;height:56px;font-size:20px;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div id="epName" style="font-size:18px;font-weight:700"></div>
+          <div id="epBadge"></div>
+        </div>
+        <div id="epSub" style="font-size:12px;color:var(--text3);margin-top:2px"></div>
+        <div id="epMeta" style="font-size:12px;color:var(--text2);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modalEmpProfile')" style="position:absolute;top:12px;right:12px">✕</button>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="epStats" style="display:flex;gap:0;border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border)"></div>
+
+    <!-- Tabs -->
+    <div style="padding:0 1.5rem">
+      <div style="display:flex;gap:0;border-bottom:0.5px solid var(--border);margin-bottom:0;overflow-x:auto" id="epTabs"></div>
+    </div>
+
+    <!-- Tab content -->
+    <div id="epBody" style="padding:1rem 1.5rem 1.5rem;max-height:55vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <datalist id="empList"></datalist>
 
 <script>
@@ -1253,6 +1284,238 @@ function deleteEmployee(id) {
   save(); renderEmployees();
 }
 
+
+// ══════════════════════════════════
+// EMPLOYEE PROFILE (ประวัติรายคน)
+// ══════════════════════════════════
+function viewProfile(empId) {
+  const emp = DB.employees.find(e => e.id === empId);
+  if (!emp) return;
+  const nick = emp.nickname;
+  const col = colorForTeam(emp.team);
+
+  // ── Header ──
+  document.getElementById('epHeader').style.background = `var(--${col}-l)`;
+  document.getElementById('epAvatar').textContent = initials(emp.name || nick);
+  document.getElementById('epAvatar').style.background = `var(--${col}-d)`;
+  document.getElementById('epAvatar').style.color = '#fff';
+  document.getElementById('epName').textContent = nick + (emp.name && emp.name !== nick ? ` (${emp.name})` : '');
+  document.getElementById('epBadge').innerHTML = badgeStatus(emp.status);
+  document.getElementById('epSub').textContent = [emp.position, emp.team].filter(Boolean).join(' · ');
+
+  const meta = [];
+  if (emp.startDate) meta.push(`<span>📅 เริ่มงาน ${fmtDate(emp.startDate)}</span>`);
+  if (emp.phone) meta.push(`<span>📱 ${emp.phone}</span>`);
+  if (emp.line) meta.push(`<span>💬 LINE: ${emp.line}</span>`);
+  if (emp.email) meta.push(`<span>✉️ ${emp.email}</span>`);
+  if (emp.salary) meta.push(`<span>💰 ${fmtMoney(emp.salary)} บาท</span>`);
+  document.getElementById('epMeta').innerHTML = meta.join('');
+
+  // ── คำนวณ stats สรุป ──
+  const myLeave = DB.leave.filter(l => l.employee === nick);
+  const myAtt = DB.attendance.filter(a => a.employee === nick);
+  const myPay = DB.payroll.filter(p => p.employee === nick || p.nickname === nick);
+  const myKpi = DB.kpi.filter(k => k.employee === nick);
+  const myCoach = DB.coaching.filter(c => c.employee === nick);
+  const myWarn = (DB.warnings||[]).filter(w => w.employee === nick);
+  const myTrain = DB.training.filter(t => t.employee === nick);
+
+  const sick = myLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
+  const vac = myLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
+  const absent = myLeave.filter(l=>l.type==='ขาดงาน').length;
+  const late = myLeave.filter(l=>l.type==='มาสาย').length;
+  const avgKpi = myKpi.length ? (myKpi.reduce((s,k)=>s+(Number(k.score)||0),0)/myKpi.length).toFixed(1) : '—';
+
+  document.getElementById('epStats').innerHTML = [
+    ['ลาป่วย', sick+' วัน', 'pink'],
+    ['ลาพักร้อน', vac+' วัน', 'teal'],
+    ['ขาดงาน', absent+' ครั้ง', 'red'],
+    ['มาสาย', late+' ครั้ง', 'purple'],
+    ['avg KPI', avgKpi, 'blue'],
+    ['หนังสือเตือน', myWarn.length+' ฉบับ', myWarn.length?'red':'gray'],
+  ].map(([l,v,c]) => `
+    <div style="flex:1;text-align:center;padding:10px 4px;border-right:0.5px solid var(--border)">
+      <div style="font-size:15px;font-weight:700;color:var(--${c})">${v}</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${l}</div>
+    </div>`).join('');
+
+  // ── Tab definitions ──
+  const tabs = [
+    { key:'info',    label:'ข้อมูลส่วนตัว', icon:'ti-user' },
+    { key:'leave',   label:`การลา (${myLeave.length})`, icon:'ti-calendar-off' },
+    { key:'att',     label:`Attendance (${myAtt.length})`, icon:'ti-clock' },
+    { key:'pay',     label:`Payroll (${myPay.length})`, icon:'ti-cash' },
+    { key:'kpi',     label:`KPI (${myKpi.length})`, icon:'ti-chart-bar' },
+    { key:'coach',   label:`การคุย (${myCoach.length})`, icon:'ti-message-circle' },
+    { key:'train',   label:`Training (${myTrain.length})`, icon:'ti-book' },
+    { key:'warn',    label:`เตือน (${myWarn.length})`, icon:'ti-alert-triangle' },
+  ];
+
+  let activeTab = 'info';
+  function renderTab(key) {
+    activeTab = key;
+    document.querySelectorAll('.ep-tab').forEach(t => {
+      t.style.borderBottom = t.dataset.key === key ? '2px solid var(--blue)' : '2px solid transparent';
+      t.style.color = t.dataset.key === key ? 'var(--blue)' : 'var(--text2)';
+      t.style.fontWeight = t.dataset.key === key ? '600' : '400';
+    });
+
+    const body = document.getElementById('epBody');
+    const row = (label, val) => val ? `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text3);min-width:110px;flex-shrink:0">${label}</span><span style="color:var(--text)">${val}</span></div>` : '';
+    const empty2 = t => `<div style="text-align:center;color:var(--text3);padding:2rem;font-size:13px">— ${t} —</div>`;
+    const badge2 = (t,c='gray') => `<span class="badge badge-${c}" style="font-size:11px">${t}</span>`;
+
+    if (key === 'info') {
+      body.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+          ${row('ชื่อจริง', emp.name)}
+          ${row('ชื่อเล่น', emp.nickname)}
+          ${row('ตำแหน่ง', emp.position)}
+          ${row('ทีม', emp.team)}
+          ${row('เริ่มงาน', emp.startDate ? fmtDate(emp.startDate) : '')}
+          ${row('สถานะ', emp.status)}
+          ${row('เงินเดือน', emp.salary ? fmtMoney(emp.salary)+' บาท' : '')}
+          ${row('โทรศัพท์', emp.phone)}
+          ${row('LINE ID', emp.line)}
+          ${row('Email', emp.email)}
+          ${row('วันเกิด', emp.birth ? fmtDate(emp.birth) : '')}
+          ${row('ที่อยู่', emp.address)}
+          ${row('หมายเหตุ', emp.note)}
+        </div>`;
+    } else if (key === 'leave') {
+      body.innerHTML = myLeave.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--surface)">
+          <th style="padding:6px 8px;text-align:left">วันที่</th>
+          <th style="padding:6px 8px;text-align:left">ประเภท</th>
+          <th style="padding:6px 8px;text-align:center">วัน</th>
+          <th style="padding:6px 8px;text-align:left">เหตุผล</th>
+          <th style="padding:6px 8px;text-align:center">ใบแพทย์</th>
+        </tr></thead>
+        <tbody>${[...myLeave].sort((a,b)=>b.date.localeCompare(a.date)).map(l=>`
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:6px 8px;white-space:nowrap">${fmtDate(l.date)}</td>
+            <td style="padding:6px 8px">${badgeLeave(l.type)}</td>
+            <td style="padding:6px 8px;text-align:center">${Number(l.days)||1}</td>
+            <td style="padding:6px 8px;color:var(--text2)">${l.reason||'—'}</td>
+            <td style="padding:6px 8px;text-align:center">${l.medical==='yes'?'✓':'—'}</td>
+          </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติการลา');
+    } else if (key === 'att') {
+      const attRows = [...myAtt].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
+      body.innerHTML = attRows.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--surface)">
+          <th style="padding:6px 8px;text-align:left">วันที่</th>
+          <th style="padding:6px 8px;text-align:left">สถานะ</th>
+          <th style="padding:6px 8px;text-align:left">เข้า</th>
+          <th style="padding:6px 8px;text-align:left">ออก</th>
+          <th style="padding:6px 8px;text-align:left">หมายเหตุ</th>
+        </tr></thead>
+        <tbody>${attRows.map(a=>`
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:6px 8px;white-space:nowrap">${fmtDate(a.date)}</td>
+            <td style="padding:6px 8px">${a.status==='มาทำงาน'?badge2('มาทำงาน','teal'):a.status==='มาสาย'?badge2('มาสาย','purple'):badge2(a.status||'—','gray')}</td>
+            <td style="padding:6px 8px">${a.timeIn||'—'}</td>
+            <td style="padding:6px 8px">${a.timeOut||'—'}</td>
+            <td style="padding:6px 8px;color:var(--text2)">${a.note||'—'}</td>
+          </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Attendance');
+    } else if (key === 'pay') {
+      const netTotal = myPay.reduce((s,p)=>s+(Number(p.net)||0),0);
+      body.innerHTML = myPay.length ? `
+        <div style="font-size:12px;color:var(--text3);margin-bottom:8px">รวมจ่ายทั้งหมด: <strong style="color:var(--blue);font-size:14px">${fmtMoney(netTotal)} บาท</strong></div>
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <thead><tr style="background:var(--surface)">
+            <th style="padding:6px 8px;text-align:left">เดือน</th>
+            <th style="padding:6px 8px;text-align:right">Base</th>
+            <th style="padding:6px 8px;text-align:right">OT</th>
+            <th style="padding:6px 8px;text-align:right">โบนัส</th>
+            <th style="padding:6px 8px;text-align:right">หัก</th>
+            <th style="padding:6px 8px;text-align:right">สุทธิ</th>
+          </tr></thead>
+          <tbody>${[...myPay].sort((a,b)=>b.month.localeCompare(a.month)).map(p=>`
+            <tr style="border-bottom:0.5px solid var(--border)">
+              <td style="padding:6px 8px">${p.month||'—'}</td>
+              <td style="padding:6px 8px;text-align:right">${fmtMoney(p.base||p.salary||0)}</td>
+              <td style="padding:6px 8px;text-align:right">${fmtMoney(p.ot||0)}</td>
+              <td style="padding:6px 8px;text-align:right">${fmtMoney(p.bonus||0)}</td>
+              <td style="padding:6px 8px;text-align:right;color:var(--red)">${fmtMoney((p.deductLeave||0)+(p.social||0)+(p.fund||0)+(p.loan||0)+(p.deduct||0))}</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:600;color:var(--blue)">${fmtMoney(p.net||0)}</td>
+            </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Payroll');
+    } else if (key === 'kpi') {
+      body.innerHTML = myKpi.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--surface)">
+          <th style="padding:6px 8px;text-align:left">เดือน</th>
+          <th style="padding:6px 8px;text-align:left">ตัวชี้วัด</th>
+          <th style="padding:6px 8px;text-align:right">เป้า</th>
+          <th style="padding:6px 8px;text-align:right">ทำได้</th>
+          <th style="padding:6px 8px;text-align:right">คะแนน</th>
+        </tr></thead>
+        <tbody>${[...myKpi].sort((a,b)=>b.month.localeCompare(a.month)).map(k=>{
+          const pct = k.target ? Math.round((k.sales/k.target)*100) : null;
+          return `<tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:6px 8px">${k.month||'—'}</td>
+            <td style="padding:6px 8px">${k.metric||'—'}</td>
+            <td style="padding:6px 8px;text-align:right">${k.target||'—'}</td>
+            <td style="padding:6px 8px;text-align:right">${k.sales||'—'}${pct!=null?` <span style="font-size:10px;color:var(--text3)">(${pct}%)</span>`:''}</td>
+            <td style="padding:6px 8px;text-align:right;font-weight:600;color:${Number(k.score)>=80?'var(--teal)':Number(k.score)>=50?'var(--blue)':'var(--red)'}">${k.score||'—'}</td>
+          </tr>`;}).join('')}</tbody></table>` : empty2('ไม่มีประวัติ KPI');
+    } else if (key === 'coach') {
+      body.innerHTML = myCoach.length ? myCoach.sort((a,b)=>b.date.localeCompare(a.date)).map(c=>`
+        <div style="border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:12px;font-weight:600">${c.topic||'การคุย'}</span>
+            <span style="font-size:11px;color:var(--text3)">${fmtDate(c.date)}</span>
+          </div>
+          ${c.detail?`<div style="font-size:12px;color:var(--text2);margin-top:4px">${c.detail}</div>`:''}
+          ${c.action?`<div style="font-size:11px;margin-top:6px;padding:4px 8px;background:var(--blue-l);color:var(--blue-d);border-radius:6px">📌 Action: ${c.action}</div>`:''}
+          ${c.result?`<div style="font-size:11px;margin-top:4px;color:var(--teal)">✅ ผล: ${c.result}</div>`:''}
+        </div>`).join('') : empty2('ไม่มีประวัติการ Coaching');
+    } else if (key === 'train') {
+      body.innerHTML = myTrain.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
+        <thead><tr style="background:var(--surface)">
+          <th style="padding:6px 8px;text-align:left">วันที่</th>
+          <th style="padding:6px 8px;text-align:left">หลักสูตร</th>
+          <th style="padding:6px 8px;text-align:left">ประเภท</th>
+          <th style="padding:6px 8px;text-align:right">ชั่วโมง</th>
+          <th style="padding:6px 8px;text-align:left">สถานะ</th>
+        </tr></thead>
+        <tbody>${[...myTrain].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(t=>`
+          <tr style="border-bottom:0.5px solid var(--border)">
+            <td style="padding:6px 8px;white-space:nowrap">${fmtDate(t.date||'')}</td>
+            <td style="padding:6px 8px;font-weight:500">${t.course||'—'}</td>
+            <td style="padding:6px 8px">${t.type||'—'}</td>
+            <td style="padding:6px 8px;text-align:right">${t.hours||'—'}</td>
+            <td style="padding:6px 8px">${t.status==='ผ่าน'?badge2('ผ่าน','teal'):t.status==='ไม่ผ่าน'?badge2('ไม่ผ่าน','red'):badge2(t.status||'—','gray')}</td>
+          </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Training');
+    } else if (key === 'warn') {
+      body.innerHTML = myWarn.length ? myWarn.sort((a,b)=>b.date.localeCompare(a.date)).map(w=>`
+        <div style="border:0.5px solid var(--red);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--red-l,#fff0f0)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:12px;font-weight:600;color:var(--red)">⚠️ ${w.level||'หนังสือเตือน'}</span>
+            <span style="font-size:11px;color:var(--text3)">${fmtDate(w.date)}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">${w.reason||w.detail||'—'}</div>
+        </div>`).join('') : empty2('ไม่มีประวัติหนังสือเตือน');
+    }
+  }
+
+  document.getElementById('epTabs').innerHTML = tabs.map(t => `
+    <button class="ep-tab btn btn-ghost btn-sm" data-key="${t.key}"
+      style="border-radius:0;padding:10px 12px;border-bottom:2px solid transparent;white-space:nowrap;font-size:12px"
+      onclick="document.querySelector('.ep-tab[data-key=\"${t.key}\"]').click(); epRenderTab('${t.key}')">
+      <i class="ti ${t.icon}"></i>${t.label}
+    </button>`).join('');
+
+  // expose renderTab ให้ onclick ใช้ได้
+  window.epRenderTab = renderTab;
+
+  // wire tab clicks properly
+  document.querySelectorAll('.ep-tab').forEach(btn => {
+    btn.onclick = () => renderTab(btn.dataset.key);
+  });
+
+  renderTab('info');
+  document.getElementById('modalEmpProfile').classList.add('open');
+}
+
 function renderEmployees() {
   const q = document.getElementById('empSearch')?.value.toLowerCase() || '';
   const team = document.getElementById('empTeam')?.value || '';
@@ -1278,9 +1541,10 @@ function renderEmployees() {
         ${e.salary ? `<div>เงินเดือน ${fmtMoney(e.salary)}</div>` : ''}
         ${e.phone ? `<div>${e.phone}</div>` : ''}
       </div>
-      <div style="display:flex;gap:6px" class="edit-only">
-        <button class="btn btn-ghost btn-sm" onclick="editEmployee('${e.id}')"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${e.id}')"><i class="ti ti-trash"></i></button>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="btn btn-sm" style="flex:1;background:var(--blue-l);color:var(--blue-d);font-size:12px" onclick="viewProfile('${e.id}')"><i class="ti ti-id-badge-2"></i>ดูประวัติ</button>
+        <button class="btn btn-ghost btn-sm edit-only" onclick="editEmployee('${e.id}')"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-danger btn-sm edit-only" onclick="deleteEmployee('${e.id}')"><i class="ti ti-trash"></i></button>
       </div>
     </div>`).join('')
     : `<div style="grid-column:1/-1">${empty('ยังไม่มีพนักงาน — กด "+ เพิ่มพนักงาน"')}</div>`;
