@@ -203,6 +203,7 @@ tr:hover td{background:var(--gray-l)}
   <button class="sb-item" onclick="nav('training')"><i class="ti ti-book"></i>Training & IDP</button>
 
   <div class="sb-section">การเงิน</div>
+  <button class="sb-item" onclick="nav('loans')"><i class="ti ti-cash-banknote"></i>เงินกู้บริษัท</button>
   <button class="sb-item" onclick="nav('expenses')"><i class="ti ti-receipt"></i>เบิกบริษัท</button>
 
   <div class="sb-section">เอกสาร</div>
@@ -504,6 +505,31 @@ tr:hover td{background:var(--gray-l)}
   </div>
 </div>
 
+<!-- ── LOANS ── -->
+<div class="page" id="page-loans">
+  <div style="padding:2rem">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+      <div><div class="page-title">เงินกู้บริษัท</div><div class="page-sub">บันทึกเงินกู้ล่วงหน้า — ผ่อนหักจากเงินเดือนรายเดือน</div></div>
+      <button class="btn btn-primary edit-only" onclick="openLoanModal(null)"><i class="ti ti-plus"></i>บันทึกเงินกู้ใหม่</button>
+    </div>
+    <div class="stats" id="loanStats"></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this,'loan-active')">กู้อยู่ / ค้างชำระ</button>
+      <button class="tab" onclick="switchTab(this,'loan-done')">ชำระครบแล้ว</button>
+      <button class="tab" onclick="switchTab(this,'loan-payments')">ประวัติการหัก</button>
+    </div>
+    <div class="tab-pane active" id="loan-active"><div id="loanActiveList"></div></div>
+    <div class="tab-pane" id="loan-done"><div id="loanDoneList"></div></div>
+    <div class="tab-pane" id="loan-payments">
+      <div class="search-bar">
+        <input id="loanPaySearch" placeholder="ค้นหาชื่อ..." oninput="renderLoanPayments()">
+        <input type="month" id="loanPayMonth" onchange="renderLoanPayments()">
+      </div>
+      <div class="card"><div class="tbl-wrap"><table id="loanPayTable"></table></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- ── EXPENSES ── -->
 <div class="page" id="page-expenses">
   <div style="padding:2rem">
@@ -706,7 +732,10 @@ tr:hover td{background:var(--gray-l)}
       <div class="field"><label>หักลาเกิน/ไม่รับค่าจ้าง</label><input type="number" id="payDeductLeave" value="0" oninput="calcPay()"></div>
       <div class="field"><label>หัก สปส. 5% (ฐานสูงสุด 17,500)</label><input type="number" id="paySocialF" readonly style="background:var(--gray-l)"></div>
       <div class="field"><label>หักกองทุน กยศ./กรอ.</label><input type="number" id="payFund" value="0" oninput="calcPay()"></div>
-      <div class="field"><label>เงินกู้บริษัท</label><input type="number" id="payLoan" value="0" oninput="calcPay()"></div>
+      <div class="field"><label>เงินกู้บริษัท</label>
+        <input type="number" id="payLoan" value="0" oninput="calcPay()">
+        <div id="payLoanHint" style="font-size:11px;color:var(--amber-d);margin-top:3px;display:none"></div>
+      </div>
       <div class="field"><label>หักอื่นๆ</label><input type="number" id="payDeduct" value="0" oninput="calcPay()"></div>
     </div>
     <div style="background:var(--red-l);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--red-d);margin-bottom:10px">
@@ -938,6 +967,30 @@ tr:hover td{background:var(--gray-l)}
   </div>
 </div>
 
+<!-- Loan Modal -->
+<div class="modal-overlay" id="modalLoan">
+  <div class="modal" style="width:560px">
+    <div class="modal-header"><div class="modal-title" id="loanModalTitle">บันทึกเงินกู้บริษัท</div><button class="modal-close" onclick="closeModal('modalLoan')">✕</button></div>
+    <input type="hidden" id="loanId">
+    <div class="form-grid">
+      <div class="field"><label>ชื่อพนักงาน *</label><input id="loanEmp" list="empList" placeholder="ชื่อเล่น" oninput="fillLoanEmpInfo()"></div>
+      <div class="field"><label>วันที่กู้ *</label><input type="date" id="loanDate"></div>
+      <div class="field"><label>วงเงินกู้ทั้งหมด (บาท) *</label><input type="number" id="loanTotal" placeholder="0" oninput="calcLoanInstall()"></div>
+      <div class="field"><label>จำนวนงวด (เดือน) *</label><input type="number" id="loanInstalls" placeholder="เช่น 6" min="1" oninput="calcLoanInstall()"></div>
+      <div class="field"><label>ยอดผ่อนต่อเดือน</label>
+        <input type="number" id="loanMonthly" placeholder="คำนวณอัตโนมัติ" oninput="calcLoanInstall()">
+      </div>
+      <div class="field"><label>เดือนเริ่มหัก *</label><input type="month" id="loanStartMonth"></div>
+      <div class="field form-full"><label>เหตุผล / หมายเหตุ</label><input id="loanNote" placeholder="เช่น ค่ารักษาพยาบาล ฉุกเฉิน..."></div>
+    </div>
+    <div id="loanInstallPreview" style="background:var(--blue-l);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--blue-d);margin-top:8px;display:none"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeModal('modalLoan')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveLoan()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <!-- Expense Modal -->
 <div class="modal-overlay" id="modalExpense">
   <div class="modal">
@@ -1030,7 +1083,7 @@ const DB = {
   employees: [], leave: [], attendance: [], payroll: [],
   kpi: [], coaching: [], training: [], documents: [],
   candidates: [], announcements: [], warnings: [],
-  expenses: [],
+  expenses: [], loans: [],
   settings: { scriptUrl: '', mode: 'kate' }
 };
 
@@ -1109,6 +1162,7 @@ function nav(page) {
   if (page === 'announce') renderAnnounce();
   if (page === 'recruitment') { renderPipeline(); renderOnboard(); }
   if (page === 'settings') renderSettings();
+  if (page === 'loans') { renderLoans(); renderLoanPayments(); }
   if (page === 'expenses') { initExpMonth(); renderExpenses(); renderExpAll(); }
   if (page === 'warning') renderWarnings();
 }
@@ -1409,6 +1463,7 @@ function viewProfile(empId) {
     { key:'leave',   label:`การลา (${myLeave.length})`, icon:'ti-calendar-off' },
     { key:'att',     label:`Attendance (${myAtt.length})`, icon:'ti-clock' },
     { key:'pay',     label:`Payroll (${myPay.length})`, icon:'ti-cash' },
+    { key:'loan',    label:`เงินกู้`, icon:'ti-cash-banknote' },
     { key:'expense', label:`เบิกบริษัท`, icon:'ti-receipt' },
     { key:'kpi',     label:`KPI (${myKpi.length})`, icon:'ti-chart-bar' },
     { key:'coach',   label:`การคุย (${myCoach.length})`, icon:'ti-message-circle' },
@@ -1482,6 +1537,53 @@ function viewProfile(empId) {
             <td style="padding:6px 8px">${a.timeOut||'—'}</td>
             <td style="padding:6px 8px;color:var(--text2)">${a.note||'—'}</td>
           </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Attendance');
+    } else if (key === 'loan') {
+      const myLoans = (DB.loans||[]).filter(x => x.employee === nick);
+      const activeLoans = myLoans.filter(x => x.status !== 'done');
+      const doneLoans = myLoans.filter(x => x.status === 'done');
+      const totalBorrowed = myLoans.reduce((s,x)=>s+(Number(x.total)||0),0);
+      const totalPaid = myLoans.reduce((s,x)=>s+(Number(x.paidAmount)||0),0);
+      const totalRemain = totalBorrowed - totalPaid;
+
+      body.innerHTML = myLoans.length ? `
+        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="background:var(--pink-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
+            <div style="font-size:10px;color:var(--pink-d);margin-bottom:2px">กู้รวมทั้งหมด</div>
+            <div style="font-size:16px;font-weight:700;color:var(--pink-d)">${totalBorrowed.toLocaleString()} ฿</div>
+          </div>
+          <div style="background:var(--teal-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
+            <div style="font-size:10px;color:var(--teal-d);margin-bottom:2px">ชำระแล้ว</div>
+            <div style="font-size:16px;font-weight:700;color:var(--teal)">${totalPaid.toLocaleString()} ฿</div>
+          </div>
+          <div style="background:var(--amber-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
+            <div style="font-size:10px;color:var(--amber-d);margin-bottom:2px">ยอดคงเหลือ</div>
+            <div style="font-size:16px;font-weight:700;color:var(--amber)">${totalRemain.toLocaleString()} ฿</div>
+          </div>
+        </div>
+        ${myLoans.sort((a,b)=>b.date.localeCompare(a.date)).map(ln=>{
+          const remain = (Number(ln.total)||0) - (Number(ln.paidAmount)||0);
+          const pct = ln.total ? Math.round((ln.paidAmount||0)/ln.total*100) : 0;
+          const isDone = ln.status==='done';
+          return `<div style="border:0.5px solid var(--border2);border-radius:var(--rl);padding:12px 14px;margin-bottom:10px;${isDone?'opacity:.7':''}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+              <div>
+                <span style="font-size:13px;font-weight:600">วงเงิน ${Number(ln.total).toLocaleString()} ฿</span>
+                <span style="font-size:11px;color:var(--text3);margin-left:8px">${fmtDate(ln.date)} · ${ln.installs} งวด · งวดละ ${Number(ln.monthly).toLocaleString()} ฿</span>
+              </div>
+              ${isDone?'<span class="badge badge-teal">ชำระครบแล้ว ✓</span>':'<span class="badge badge-amber">กำลังผ่อน</span>'}
+            </div>
+            <div class="progress" style="margin-bottom:6px"><div class="progress-fill" style="width:${pct}%;background:${isDone?'var(--teal)':'var(--blue)'}"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)">
+              <span>ชำระแล้ว ${Number(ln.paidAmount||0).toLocaleString()} ฿ (${pct}%)</span>
+              <span>${isDone?'ชำระครบ':'คงเหลือ '+remain.toLocaleString()+' ฿'}</span>
+            </div>
+            ${ln.note?`<div style="font-size:11px;color:var(--text3);margin-top:6px">📝 ${ln.note}</div>`:''}
+          </div>`;
+        }).join('')}` : `<div style="text-align:center;padding:2.5rem;color:var(--text3)">
+          <i class="ti ti-cash-banknote" style="font-size:32px;display:block;margin-bottom:8px"></i>
+          <p style="font-size:13px">ไม่มีประวัติเงินกู้</p>
+          <button class="btn btn-primary btn-sm edit-only" style="margin-top:12px" onclick="openLoanModal('${nick}')"><i class="ti ti-plus"></i>บันทึกเงินกู้</button>
+        </div>`;
     } else if (key === 'expense') {
       const myExp = (DB.expenses||[]).filter(x => x.employee === nick);
       const totalAmt = myExp.reduce((s,x)=>s+(Number(x.amount)||0),0);
@@ -1672,6 +1774,7 @@ function renderEmployees() {
         ${e.salary ? `<div>เงินเดือน ${fmtMoney(e.salary)}</div>` : ''}
         ${e.phone ? `<div>${e.phone}</div>` : ''}
         ${pendingExp>0?`<div style="margin-top:4px;color:var(--amber);font-weight:500"><i class="ti ti-receipt" style="font-size:12px"></i> ค้างเบิก ${pendingExp.toLocaleString()} ฿</div>`:''}
+        ${(()=>{ const lnRemain=(DB.loans||[]).filter(l=>l.employee===e.nickname&&l.status!=='done').reduce((s,l)=>s+((Number(l.total)||0)-(Number(l.paidAmount)||0)),0); return lnRemain>0?`<div style="margin-top:2px;color:var(--red);font-weight:500"><i class="ti ti-cash-banknote" style="font-size:12px"></i> เงินกู้ค้าง ${lnRemain.toLocaleString()} ฿</div>`:''; })()}
       </div>
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="btn btn-sm" style="flex:1;background:var(--blue-l);color:var(--blue-d);font-size:12px" onclick="viewProfile('${e.id}')"><i class="ti ti-id-badge-2"></i>ดูประวัติ</button>
@@ -1882,6 +1985,25 @@ function autoFillEmpPay() {
       calcPay();
     }
   }
+  // แสดง hint เงินกู้ที่ค้างอยู่
+  const month = document.getElementById('payMonthF').value || thisMonth();
+  const activeLoans = (DB.loans||[]).filter(l=>l.employee===nick&&l.status!=='done');
+  const hint = document.getElementById('payLoanHint');
+  if(hint) {
+    if(activeLoans.length && nick) {
+      const monthly = activeLoans.reduce((s,l)=>s+(Number(l.monthly)||0),0);
+      const remain = activeLoans.reduce((s,l)=>s+((Number(l.total)||0)-(Number(l.paidAmount)||0)),0);
+      hint.textContent = `⚠️ มีเงินกู้ค้าง ${remain.toLocaleString()} ฿ · ยอดผ่อนงวดนี้ ${monthly.toLocaleString()} ฿`;
+      hint.style.display = 'block';
+      // ใส่ค่าอัตโนมัติถ้า field ยังเป็น 0
+      const loanEl = document.getElementById('payLoan');
+      if(loanEl && (loanEl.value===''||loanEl.value==='0')) {
+        loanEl.value = monthly; calcPay();
+      }
+    } else {
+      hint.style.display = 'none';
+    }
+  }
 }
 
 function calcPay() {
@@ -1934,6 +2056,16 @@ function savePayroll() {
   if (!obj.employee||!obj.month) return alert('กรุณากรอกชื่อและเดือน');
   if (id){const i=DB.payroll.findIndex(p=>p.id===id);if(i>=0)DB.payroll[i]=obj;}
   else DB.payroll.push(obj);
+  // ถ้ามี payLoan > 0 บันทึกการหักเงินกู้อัตโนมัติ
+  if (obj.loan > 0 && !id) {
+    const activeLoans = (DB.loans||[]).filter(l=>l.employee===obj.employee&&l.status!=='done');
+    let remaining = obj.loan;
+    activeLoans.forEach(ln => {
+      if (remaining <= 0) return;
+      const deduct = Math.min(remaining, Number(ln.monthly)||0);
+      if (deduct > 0) { markLoanPayment(ln.id, obj.month, deduct); remaining -= deduct; }
+    });
+  }
   save();pushToSheets();closeModal('modalPayroll');renderPayroll();
   document.getElementById('payId').value='';
   // reset fields
@@ -2762,6 +2894,206 @@ function printWarning(id){
   <script>window.onload=()=>{window.print();}<\/script>
   </body></html>`);
   win.document.close();
+}
+
+// ══════════════════════════════════
+// LOANS (เงินกู้บริษัท)
+// ══════════════════════════════════
+function openLoanModal(empNick) {
+  if (!DB.loans) DB.loans = [];
+  document.getElementById('loanId').value = '';
+  document.getElementById('loanEmp').value = empNick || '';
+  document.getElementById('loanDate').value = todayStr();
+  document.getElementById('loanTotal').value = '';
+  document.getElementById('loanInstalls').value = '';
+  document.getElementById('loanMonthly').value = '';
+  document.getElementById('loanStartMonth').value = thisMonth();
+  document.getElementById('loanNote').value = '';
+  document.getElementById('loanInstallPreview').style.display = 'none';
+  document.getElementById('loanModalTitle').textContent = 'บันทึกเงินกู้บริษัท';
+  openModal('modalLoan');
+}
+
+function fillLoanEmpInfo() {
+  // ไม่ต้องทำอะไรพิเศษ — placeholder เพื่อ extend ในอนาคต
+}
+
+function calcLoanInstall() {
+  const total = Number(document.getElementById('loanTotal').value)||0;
+  const installs = Number(document.getElementById('loanInstalls').value)||0;
+  const manualMonthly = Number(document.getElementById('loanMonthly').value)||0;
+  const preview = document.getElementById('loanInstallPreview');
+  if (total && installs) {
+    const monthly = manualMonthly || Math.ceil(total / installs);
+    if (!manualMonthly) document.getElementById('loanMonthly').value = monthly;
+    preview.style.display = 'block';
+    preview.innerHTML = `<i class="ti ti-calculator" style="font-size:14px"></i> วงเงิน <strong>${total.toLocaleString()}</strong> ฿ · ผ่อน <strong>${installs}</strong> งวด · งวดละ <strong>${monthly.toLocaleString()}</strong> ฿`;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function saveLoan() {
+  if (!DB.loans) DB.loans = [];
+  const id = document.getElementById('loanId').value;
+  const total = Number(document.getElementById('loanTotal').value)||0;
+  const installs = Number(document.getElementById('loanInstalls').value)||0;
+  const monthly = Number(document.getElementById('loanMonthly').value)||Math.ceil(total/installs);
+  const obj = {
+    id: id || uid(),
+    employee: document.getElementById('loanEmp').value.trim(),
+    date: document.getElementById('loanDate').value,
+    total,
+    installs,
+    monthly,
+    startMonth: document.getElementById('loanStartMonth').value,
+    note: document.getElementById('loanNote').value.trim(),
+    paidAmount: id ? ((DB.loans||[]).find(l=>l.id===id)?.paidAmount||0) : 0,
+    paidInstalls: id ? ((DB.loans||[]).find(l=>l.id===id)?.paidInstalls||0) : 0,
+    status: 'active'
+  };
+  if (!obj.employee||!obj.date||!obj.total||!obj.installs) return alert('กรุณากรอกข้อมูลให้ครบค่ะ');
+  if (id) { const i=DB.loans.findIndex(l=>l.id===id); if(i>=0) DB.loans[i]=obj; }
+  else DB.loans.push(obj);
+  save(); pushToSheets(); closeModal('modalLoan'); renderLoans();
+}
+
+function deleteLoan(id) {
+  if (!confirm('ลบเงินกู้รายการนี้?')) return;
+  DB.loans = (DB.loans||[]).filter(l=>l.id!==id);
+  save(); pushToSheets(); renderLoans();
+}
+
+// หัก 1 งวดจากเงินกู้นั้น (เรียกหลัง savePayroll ด้วยก็ได้)
+function markLoanPayment(loanId, month, amount) {
+  const ln = (DB.loans||[]).find(l=>l.id===loanId);
+  if (!ln) return;
+  ln.paidAmount = (Number(ln.paidAmount)||0) + amount;
+  ln.paidInstalls = (Number(ln.paidInstalls)||0) + 1;
+  // บันทึก payment history ใน DB.loans payments
+  if (!ln.payments) ln.payments = [];
+  ln.payments.push({ month, amount, paidDate: todayStr() });
+  // ถ้าชำระครบ
+  if (ln.paidAmount >= ln.total) { ln.status = 'done'; ln.paidAmount = ln.total; }
+  save(); pushToSheets();
+}
+
+function renderLoans() {
+  if (!DB.loans) DB.loans = [];
+  const active = DB.loans.filter(l=>l.status!=='done');
+  const done = DB.loans.filter(l=>l.status==='done');
+  const totalActive = active.reduce((s,l)=>s+((Number(l.total)||0)-(Number(l.paidAmount)||0)),0);
+  const totalBorrowed = DB.loans.reduce((s,l)=>s+(Number(l.total)||0),0);
+  const totalPaid = DB.loans.reduce((s,l)=>s+(Number(l.paidAmount)||0),0);
+
+  const statsEl = document.getElementById('loanStats');
+  if (statsEl) statsEl.innerHTML = `
+    <div class="stat"><div class="stat-label">สัญญากู้ทั้งหมด</div><div class="stat-val">${DB.loans.length}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat"><div class="stat-label">กำลังผ่อนอยู่</div><div class="stat-val" style="color:var(--amber)">${active.length}</div><div class="stat-sub">สัญญา</div></div>
+    <div class="stat"><div class="stat-label">ยอดค้างรวม</div><div class="stat-val" style="color:var(--red);font-size:18px">${(totalActive/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
+    <div class="stat"><div class="stat-label">ชำระครบแล้ว</div><div class="stat-val" style="color:var(--teal)">${done.length}</div><div class="stat-sub">สัญญา</div></div>
+  `;
+
+  const loanCard = (ln) => {
+    const remain = (Number(ln.total)||0) - (Number(ln.paidAmount)||0);
+    const pct = ln.total ? Math.round((ln.paidAmount||0)/ln.total*100) : 0;
+    const emp = DB.employees.find(e=>e.nickname===ln.employee);
+    const col = colorForTeam(emp?.team);
+    const nextMonth = getNextLoanMonth(ln);
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:var(--${col}-l);color:var(--${col}-d)">${initials(emp?.name||ln.employee)}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${ln.employee}</div>
+            <div style="font-size:11px;color:var(--text3)">${emp?.position||''} ${emp?.team?'· '+emp.team:''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap;align-items:flex-start">
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">วงเงิน</div><strong>${Number(ln.total).toLocaleString()}</strong></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">ผ่อนงวดละ</div><strong style="color:var(--blue)">${Number(ln.monthly).toLocaleString()} ฿</strong></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">ชำระแล้ว</div><strong style="color:var(--teal)">${Number(ln.paidAmount||0).toLocaleString()} ฿</strong></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--amber-d)">คงเหลือ</div><strong style="color:var(--amber)">${remain.toLocaleString()} ฿</strong></div>
+        </div>
+      </div>
+      <div class="progress" style="margin-bottom:6px">
+        <div class="progress-fill" style="width:${pct}%;background:var(--blue)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:10px">
+        <span>${ln.paidInstalls||0}/${ln.installs} งวด (${pct}%) · เริ่ม ${ln.startMonth}</span>
+        <span>${ln.status==='done'?'✅ ชำระครบแล้ว':'งวดถัดไป: '+nextMonth}</span>
+      </div>
+      ${ln.note?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">📝 ${ln.note}</div>`:''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${ln.status!=='done'?`<button class="btn btn-sm edit-only" style="background:var(--teal-l);color:var(--teal-d);font-size:12px" onclick="quickPayLoan('${ln.id}')"><i class="ti ti-check"></i>บันทึกการหัก ${Number(ln.monthly).toLocaleString()} ฿</button>`:''}
+        <button class="btn btn-ghost btn-sm edit-only" onclick="openEditLoanModal('${ln.id}')"><i class="ti ti-edit"></i>แก้ไข</button>
+        <button class="btn btn-danger btn-sm edit-only" onclick="deleteLoan('${ln.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  };
+
+  const activeEl = document.getElementById('loanActiveList');
+  if (activeEl) activeEl.innerHTML = active.length ? active.sort((a,b)=>b.date.localeCompare(a.date)).map(loanCard).join('') : empty('ไม่มีเงินกู้ที่กำลังผ่อนอยู่');
+  const doneEl = document.getElementById('loanDoneList');
+  if (doneEl) doneEl.innerHTML = done.length ? done.sort((a,b)=>b.date.localeCompare(a.date)).map(loanCard).join('') : empty('ยังไม่มีสัญญาที่ชำระครบ');
+}
+
+function getNextLoanMonth(ln) {
+  if (!ln.startMonth) return '—';
+  const paid = Number(ln.paidInstalls)||0;
+  const [y,m] = ln.startMonth.split('-').map(Number);
+  const d = new Date(y, m-1+paid, 1);
+  return d.toISOString().slice(0,7);
+}
+
+function quickPayLoan(loanId) {
+  const ln = (DB.loans||[]).find(l=>l.id===loanId);
+  if (!ln) return;
+  const month = getNextLoanMonth(ln);
+  if (!confirm(`บันทึกการหักงวด ${month} จำนวน ${Number(ln.monthly).toLocaleString()} ฿ ให้ ${ln.employee}?`)) return;
+  markLoanPayment(loanId, month, Number(ln.monthly));
+  renderLoans(); renderLoanPayments();
+  alert(`บันทึกแล้ว ✓ ยอดคงเหลือ ${Math.max(0,(Number(ln.total)||0)-(Number(ln.paidAmount)||0)).toLocaleString()} ฿`);
+}
+
+function openEditLoanModal(id) {
+  const ln = (DB.loans||[]).find(l=>l.id===id); if(!ln) return;
+  document.getElementById('loanId').value = ln.id;
+  document.getElementById('loanEmp').value = ln.employee;
+  document.getElementById('loanDate').value = ln.date;
+  document.getElementById('loanTotal').value = ln.total;
+  document.getElementById('loanInstalls').value = ln.installs;
+  document.getElementById('loanMonthly').value = ln.monthly;
+  document.getElementById('loanStartMonth').value = ln.startMonth;
+  document.getElementById('loanNote').value = ln.note||'';
+  document.getElementById('loanModalTitle').textContent = 'แก้ไขเงินกู้';
+  calcLoanInstall();
+  openModal('modalLoan');
+}
+
+function renderLoanPayments() {
+  if (!DB.loans) DB.loans = [];
+  const q = (document.getElementById('loanPaySearch')?.value||'').toLowerCase();
+  const month = document.getElementById('loanPayMonth')?.value||'';
+  // รวม payment records จากทุก loan
+  const rows = [];
+  DB.loans.forEach(ln => {
+    (ln.payments||[]).forEach(p => {
+      if ((!q||ln.employee.toLowerCase().includes(q)) && (!month||p.month===month)) {
+        rows.push({ ...p, employee: ln.employee, loanId: ln.id, loanTotal: ln.total, monthly: ln.monthly });
+      }
+    });
+  });
+  rows.sort((a,b)=>(b.month||'').localeCompare(a.month||''));
+  const t = document.getElementById('loanPayTable'); if(!t) return;
+  t.innerHTML = `<thead><tr><th>เดือน</th><th>พนักงาน</th><th style="text-align:right">หักงวดนี้</th><th>วันที่บันทึก</th></tr></thead><tbody>${
+    rows.length ? rows.map(r=>`<tr>
+      <td>${r.month||'—'}</td>
+      <td style="font-weight:500">${r.employee}</td>
+      <td style="text-align:right;font-weight:600;color:var(--teal)">${Number(r.amount).toLocaleString()} ฿</td>
+      <td style="font-size:12px;color:var(--text3)">${fmtDate(r.paidDate)}</td>
+    </tr>`).join('') : `<tr><td colspan="4">${empty('ไม่มีประวัติการหัก')}</td></tr>`
+  }</tbody>`;
 }
 
 // ══════════════════════════════════
