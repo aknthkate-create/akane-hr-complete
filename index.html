@@ -1094,6 +1094,11 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  // clear leaveId ทุกครั้งที่ปิด modal ป้องกัน form ค้างสถานะ edit
+  if (id === 'modalLeave') {
+    const li = document.getElementById('leaveId');
+    if (li) li.value = '';
+  }
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
@@ -1680,11 +1685,19 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
-  // ปรับ leaveMonth filter ให้ตรงกับเดือนที่บันทึก เพื่อให้เห็นข้อมูลทันที
-  const lmEl = document.getElementById('leaveMonth');
-  if (lmEl && obj.date) lmEl.value = obj.date.slice(0,7);
-  save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
+  save(); pushToSheets();
+  closeModal('modalLeave');
   document.getElementById('leaveId').value = '';
+  // sync leaveMonth filter ให้ตรงเดือนที่บันทึก
+  const lmEl2 = document.getElementById('leaveMonth');
+  if (lmEl2 && obj.date) lmEl2.value = obj.date.slice(0,7);
+  // ถ้าอยู่หน้า leave อยู่แล้วให้ render ตรง ถ้าไม่ให้ nav ไปก่อน
+  if (document.getElementById('page-leave').classList.contains('active')) {
+    renderLeave();
+  } else {
+    nav('leave');
+  }
+  renderDashboard();
 }
 
 function renderLeave() {
