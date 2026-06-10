@@ -202,10 +202,6 @@ tr:hover td{background:var(--gray-l)}
   <div class="sb-section">พัฒนา</div>
   <button class="sb-item" onclick="nav('training')"><i class="ti ti-book"></i>Training & IDP</button>
 
-  <div class="sb-section">การเงิน</div>
-  <button class="sb-item" onclick="nav('loans')"><i class="ti ti-cash-banknote"></i>เงินกู้บริษัท</button>
-  <button class="sb-item" onclick="nav('expenses')"><i class="ti ti-receipt"></i>เบิกบริษัท</button>
-
   <div class="sb-section">เอกสาร</div>
   <button class="sb-item" onclick="nav('documents')"><i class="ti ti-file-text"></i>เอกสาร & กฎระเบียบ</button>
   <button class="sb-item" onclick="nav('announce')"><i class="ti ti-speakerphone"></i>แจ้งทีม</button>
@@ -222,20 +218,9 @@ tr:hover td{background:var(--gray-l)}
 <!-- ── DASHBOARD ── -->
 <div class="page active" id="page-dashboard">
   <div style="padding:2rem">
-    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div>
-        <div class="page-title">ภาพรวม HR</div>
-        <div class="page-sub" id="dashDate"></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:6px;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:6px 10px">
-          <i class="ti ti-calendar" style="font-size:14px;color:var(--text3)"></i>
-          <input type="date" id="dashFrom" onchange="renderDashboard()" style="border:none;outline:none;font-size:12px;color:var(--text);background:transparent;font-family:var(--ff)">
-          <span style="color:var(--text3);font-size:12px">ถึง</span>
-          <input type="date" id="dashTo" onchange="renderDashboard()" style="border:none;outline:none;font-size:12px;color:var(--text);background:transparent;font-family:var(--ff)">
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="resetDashDate()" title="รีเซ็ต"><i class="ti ti-refresh"></i>เดือนนี้</button>
-      </div>
+    <div class="page-header">
+      <div class="page-title">ภาพรวม HR</div>
+      <div class="page-sub" id="dashDate"></div>
     </div>
     <div class="stats" id="dashStats"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -505,63 +490,6 @@ tr:hover td{background:var(--gray-l)}
   </div>
 </div>
 
-<!-- ── LOANS ── -->
-<div class="page" id="page-loans">
-  <div style="padding:2rem">
-    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
-      <div><div class="page-title">เงินกู้บริษัท</div><div class="page-sub">บันทึกเงินกู้ล่วงหน้า — ผ่อนหักจากเงินเดือนรายเดือน</div></div>
-      <button class="btn btn-primary edit-only" onclick="openLoanModal(null)"><i class="ti ti-plus"></i>บันทึกเงินกู้ใหม่</button>
-    </div>
-    <div class="stats" id="loanStats"></div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab(this,'loan-active')">กู้อยู่ / ค้างชำระ</button>
-      <button class="tab" onclick="switchTab(this,'loan-done')">ชำระครบแล้ว</button>
-      <button class="tab" onclick="switchTab(this,'loan-payments')">ประวัติการหัก</button>
-    </div>
-    <div class="tab-pane active" id="loan-active"><div id="loanActiveList"></div></div>
-    <div class="tab-pane" id="loan-done"><div id="loanDoneList"></div></div>
-    <div class="tab-pane" id="loan-payments">
-      <div class="search-bar">
-        <input id="loanPaySearch" placeholder="ค้นหาชื่อ..." oninput="renderLoanPayments()">
-        <input type="month" id="loanPayMonth" onchange="renderLoanPayments()">
-      </div>
-      <div class="card"><div class="tbl-wrap"><table id="loanPayTable"></table></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── EXPENSES ── -->
-<div class="page" id="page-expenses">
-  <div style="padding:2rem">
-    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
-      <div><div class="page-title">เบิกบริษัท</div><div class="page-sub">บันทึกและติดตามยอดเบิกค่าใช้จ่าย รายคน รายเดือน</div></div>
-      <div style="display:flex;gap:8px">
-        <input type="month" id="expFilterMonth" onchange="renderExpenses()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:7px 10px;font-size:13px">
-        <button class="btn btn-primary edit-only" onclick="openExpenseModal(null)"><i class="ti ti-plus"></i>บันทึกรายการเบิก</button>
-      </div>
-    </div>
-    <div class="stats" id="expStats"></div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab(this,'exp-by-emp')">รายคน</button>
-      <button class="tab" onclick="switchTab(this,'exp-all')">รายการทั้งหมด</button>
-    </div>
-    <div class="tab-pane active" id="exp-by-emp">
-      <div id="expByEmp"></div>
-    </div>
-    <div class="tab-pane" id="exp-all">
-      <div class="search-bar">
-        <input id="expSearch" placeholder="ค้นหาชื่อ / รายการ..." oninput="renderExpAll()">
-        <select id="expStatusFilter" onchange="renderExpAll()">
-          <option value="">ทุกสถานะ</option>
-          <option value="pending">รอจ่าย</option>
-          <option value="paid">จ่ายแล้ว</option>
-        </select>
-      </div>
-      <div class="card"><div class="tbl-wrap"><table id="expTable"></table></div></div>
-    </div>
-  </div>
-</div>
-
 <!-- ── ANNOUNCE ── -->
 <div class="page" id="page-announce">
   <div style="padding:2rem">
@@ -732,10 +660,7 @@ tr:hover td{background:var(--gray-l)}
       <div class="field"><label>หักลาเกิน/ไม่รับค่าจ้าง</label><input type="number" id="payDeductLeave" value="0" oninput="calcPay()"></div>
       <div class="field"><label>หัก สปส. 5% (ฐานสูงสุด 17,500)</label><input type="number" id="paySocialF" readonly style="background:var(--gray-l)"></div>
       <div class="field"><label>หักกองทุน กยศ./กรอ.</label><input type="number" id="payFund" value="0" oninput="calcPay()"></div>
-      <div class="field"><label>เงินกู้บริษัท</label>
-        <input type="number" id="payLoan" value="0" oninput="calcPay()">
-        <div id="payLoanHint" style="font-size:11px;color:var(--amber-d);margin-top:3px;display:none"></div>
-      </div>
+      <div class="field"><label>เงินกู้บริษัท</label><input type="number" id="payLoan" value="0" oninput="calcPay()"></div>
       <div class="field"><label>หักอื่นๆ</label><input type="number" id="payDeduct" value="0" oninput="calcPay()"></div>
     </div>
     <div style="background:var(--red-l);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--red-d);margin-bottom:10px">
@@ -967,57 +892,6 @@ tr:hover td{background:var(--gray-l)}
   </div>
 </div>
 
-<!-- Loan Modal -->
-<div class="modal-overlay" id="modalLoan">
-  <div class="modal" style="width:560px">
-    <div class="modal-header"><div class="modal-title" id="loanModalTitle">บันทึกเงินกู้บริษัท</div><button class="modal-close" onclick="closeModal('modalLoan')">✕</button></div>
-    <input type="hidden" id="loanId">
-    <div class="form-grid">
-      <div class="field"><label>ชื่อพนักงาน *</label><input id="loanEmp" list="empList" placeholder="ชื่อเล่น" oninput="fillLoanEmpInfo()"></div>
-      <div class="field"><label>วันที่กู้ *</label><input type="date" id="loanDate"></div>
-      <div class="field"><label>วงเงินกู้ทั้งหมด (บาท) *</label><input type="number" id="loanTotal" placeholder="0" oninput="calcLoanInstall()"></div>
-      <div class="field"><label>จำนวนงวด (เดือน) *</label><input type="number" id="loanInstalls" placeholder="เช่น 6" min="1" oninput="calcLoanInstall()"></div>
-      <div class="field"><label>ยอดผ่อนต่อเดือน</label>
-        <input type="number" id="loanMonthly" placeholder="คำนวณอัตโนมัติ" oninput="calcLoanInstall()">
-      </div>
-      <div class="field"><label>เดือนเริ่มหัก *</label><input type="month" id="loanStartMonth"></div>
-      <div class="field form-full"><label>เหตุผล / หมายเหตุ</label><input id="loanNote" placeholder="เช่น ค่ารักษาพยาบาล ฉุกเฉิน..."></div>
-    </div>
-    <div id="loanInstallPreview" style="background:var(--blue-l);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--blue-d);margin-top:8px;display:none"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
-      <button class="btn btn-ghost" onclick="closeModal('modalLoan')">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveLoan()">บันทึก</button>
-    </div>
-  </div>
-</div>
-
-<!-- Expense Modal -->
-<div class="modal-overlay" id="modalExpense">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title" id="expModalTitle">บันทึกรายการเบิก</div><button class="modal-close" onclick="closeModal('modalExpense')">✕</button></div>
-    <input type="hidden" id="expId">
-    <div class="form-grid">
-      <div class="field"><label>ชื่อพนักงาน *</label><input id="expEmp" list="empList" placeholder="ชื่อเล่น"></div>
-      <div class="field"><label>เดือน *</label><input type="month" id="expMonth"></div>
-      <div class="field"><label>วันที่เบิก</label><input type="date" id="expDate"></div>
-      <div class="field"><label>จำนวนเงิน (บาท) *</label><input type="number" id="expAmount" placeholder="0" oninput="calcExpBalance()"></div>
-      <div class="field form-full"><label>รายละเอียด</label><input id="expDesc" placeholder="เช่น ค่าเดินทาง, ค่าอาหาร, ค่าของ..."></div>
-      <div class="field"><label>สถานะ</label>
-        <select id="expStatus" onchange="calcExpBalance()">
-          <option value="pending">รอจ่าย</option>
-          <option value="paid">จ่ายแล้ว</option>
-        </select>
-      </div>
-      <div class="field"><label>วันที่จ่าย</label><input type="date" id="expPaidDate"></div>
-      <div class="field form-full"><label>หมายเหตุ</label><input id="expNote" placeholder="หมายเหตุเพิ่มเติม"></div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:1rem">
-      <button class="btn btn-ghost" onclick="closeModal('modalExpense')">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="saveExpense()">บันทึก</button>
-    </div>
-  </div>
-</div>
-
 <!-- Announce Modal -->
 <div class="modal-overlay" id="modalAnnounce">
   <div class="modal">
@@ -1042,37 +916,6 @@ tr:hover td{background:var(--gray-l)}
   </div>
 </div>
 
-
-<!-- Employee Profile Modal -->
-<div class="modal-overlay" id="modalEmpProfile" style="align-items:flex-start;padding:16px;overflow-y:auto">
-  <div class="modal" style="max-width:760px;width:100%;margin:auto;padding:0;overflow:hidden;border-radius:16px">
-    <!-- Header -->
-    <div id="epHeader" style="padding:1.5rem 1.5rem 1rem;display:flex;align-items:flex-start;gap:14px;position:relative">
-      <div id="epAvatar" class="avatar" style="width:56px;height:56px;font-size:20px;flex-shrink:0"></div>
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div id="epName" style="font-size:18px;font-weight:700"></div>
-          <div id="epBadge"></div>
-        </div>
-        <div id="epSub" style="font-size:12px;color:var(--text3);margin-top:2px"></div>
-        <div id="epMeta" style="font-size:12px;color:var(--text2);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal('modalEmpProfile')" style="position:absolute;top:12px;right:12px">✕</button>
-    </div>
-
-    <!-- Stats bar -->
-    <div id="epStats" style="display:flex;gap:0;border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border)"></div>
-
-    <!-- Tabs -->
-    <div style="padding:0 1.5rem">
-      <div style="display:flex;gap:0;border-bottom:0.5px solid var(--border);margin-bottom:0;overflow-x:auto" id="epTabs"></div>
-    </div>
-
-    <!-- Tab content -->
-    <div id="epBody" style="padding:1rem 1.5rem 1.5rem;max-height:55vh;overflow-y:auto"></div>
-  </div>
-</div>
-
 <datalist id="empList"></datalist>
 
 <script>
@@ -1083,7 +926,6 @@ const DB = {
   employees: [], leave: [], attendance: [], payroll: [],
   kpi: [], coaching: [], training: [], documents: [],
   candidates: [], announcements: [], warnings: [],
-  expenses: [], loans: [],
   settings: { scriptUrl: '', mode: 'kate' }
 };
 
@@ -1149,8 +991,20 @@ function nav(page) {
   document.querySelectorAll('.sb-item').forEach(b => {
     if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + page + "'")) b.classList.add('active');
   });
+  // เลื่อนขึ้นบนทุกครั้ง
+  const main = document.querySelector('.main');
+  if (main) main.scrollTop = 0;
   if (page === 'employees') renderEmployees();
-  if (page === 'leave') { renderLeave(); renderLeaveSummary(); renderLeaveQuota(); }
+  if (page === 'leave') {
+    // reset tab กลับหน้าแรกเสมอ
+    document.querySelectorAll('#page-leave .tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('#page-leave .tab-pane').forEach(p=>p.classList.remove('active'));
+    const firstTab = document.querySelector('#page-leave .tab');
+    const firstPane = document.getElementById('leave-list');
+    if(firstTab) firstTab.classList.add('active');
+    if(firstPane) firstPane.classList.add('active');
+    renderLeave(); renderLeaveSummary(); renderLeaveQuota();
+  }
   if (page === 'attendance') { initAttDate(); renderAttDaily(); renderRisk(); }
   if (page === 'payroll') { initPayMonths(); renderPayroll(); }
   if (page === 'kpi') { renderKpiBoard(); renderKpiList(); }
@@ -1162,8 +1016,6 @@ function nav(page) {
   if (page === 'announce') renderAnnounce();
   if (page === 'recruitment') { renderPipeline(); renderOnboard(); }
   if (page === 'settings') renderSettings();
-  if (page === 'loans') { renderLoans(); renderLoanPayments(); }
-  if (page === 'expenses') { initExpMonth(); renderExpenses(); renderExpAll(); }
   if (page === 'warning') renderWarnings();
 }
 
@@ -1173,20 +1025,6 @@ function nav(page) {
 function openModal(id) {
   if (DB.settings.mode === 'view') return;
   document.getElementById(id).classList.add('open');
-  if (id === 'modalLeave') {
-    const li = document.getElementById('leaveId');
-    if (li && !li.value) {
-      document.getElementById('leaveEmp').value = '';
-      document.getElementById('leaveTypeF').value = 'ลาป่วย';
-      document.getElementById('leaveFrom').value = todayStr();
-      document.getElementById('leaveTo').value = '';
-      document.getElementById('leaveDays').value = 1;
-      document.getElementById('leaveNotify').value = '';
-      document.getElementById('leaveMedical').value = '';
-      document.getElementById('leaveImpact').value = '';
-      document.getElementById('leaveReason').value = '';
-    }
-  }
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
@@ -1258,42 +1096,19 @@ function updateEmpDatalist() {
 // ══════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════
-function lastDayOfMonth(ym) {
-  // ym = 'YYYY-MM', returns 'YYYY-MM-DD' last day
-  const [y, m] = ym.split('-').map(Number);
-  const last = new Date(y, m, 0).getDate();
-  return ym + '-' + String(last).padStart(2,'0');
-}
-
-function resetDashDate() {
-  const from = document.getElementById('dashFrom');
-  const to = document.getElementById('dashTo');
-  if (from) from.value = thisMonth()+'-01';
-  if (to) to.value = lastDayOfMonth(thisMonth());
-  renderDashboard();
-}
-
 function renderDashboard() {
-  const fromEl = document.getElementById('dashFrom');
-  const toEl = document.getElementById('dashTo');
-  const fromDate = fromEl?.value || (thisMonth()+'-01');
-  const toDate = toEl?.value || lastDayOfMonth(thisMonth());
-  const rangeLabel = fromDate === toDate
-    ? `วันที่ ${fmtDate(fromDate)}`
-    : `${fmtDate(fromDate)} — ${fmtDate(toDate)}`;
-  document.getElementById('dashDate').textContent = rangeLabel;
-
+  document.getElementById('dashDate').textContent = `วันที่ ${fmtDate(todayStr())}`;
   const activeEmp = DB.employees.filter(e => e.status === 'active').length;
-  const filteredLeave = DB.leave.filter(l => l.date >= fromDate && l.date <= toDate);
-  const filteredAtt = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
+  const thisMonthLeave = DB.leave.filter(l => l.date >= thisMonth()+'-01' && l.date <= thisMonth()+'-31');
+  const todayAtt = DB.attendance.filter(a => a.date === todayStr());
   const totalPay = DB.payroll.filter(p => p.month === thisMonth()).reduce((s,p) => s + (p.net||0), 0);
   document.getElementById('dashStats').innerHTML = `
     <div class="stat"><div class="stat-label">พนักงานทั้งหมด</div><div class="stat-val">${activeEmp}</div><div class="stat-sub">คน (active)</div></div>
-    <div class="stat"><div class="stat-label">ลาในช่วงที่เลือก</div><div class="stat-val" style="color:var(--pink)">${filteredLeave.length}</div><div class="stat-sub">รายการ</div></div>
-    <div class="stat"><div class="stat-label">Attendance ในช่วง</div><div class="stat-val" style="color:var(--teal)">${filteredAtt.length}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat"><div class="stat-label">ลาเดือนนี้</div><div class="stat-val" style="color:var(--pink)">${thisMonthLeave.length}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat"><div class="stat-label">บันทึกวันนี้</div><div class="stat-val" style="color:var(--teal)">${todayAtt.length}</div><div class="stat-sub">คน</div></div>
     <div class="stat"><div class="stat-label">Payroll เดือนนี้</div><div class="stat-val" style="color:var(--blue)">${(totalPay/1000).toFixed(0)}K</div><div class="stat-sub">บาทสุทธิ</div></div>
   `;
-  const recentLeave = [...filteredLeave].sort((a,b) => b.date?.localeCompare(a.date||'')||0).slice(0,5);
+  const recentLeave = [...DB.leave].sort((a,b) => b.date?.localeCompare(a.date||'')||0).slice(0,5);
   document.getElementById('dashLeaveList').innerHTML = recentLeave.length
     ? recentLeave.map(l => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
         <div style="display:flex;align-items:center;gap:8px">
@@ -1302,16 +1117,16 @@ function renderDashboard() {
         </div>
         ${badgeLeave(l.type)}
       </div>`).join('')
-    : empty('ไม่มีข้อมูลการลาในช่วงที่เลือก');
+    : empty('ยังไม่มีข้อมูล');
 
   // alerts
   const alerts = [];
   DB.employees.filter(e => e.status === 'active').forEach(emp => {
-    const leaves = DB.leave.filter(l => l.employee === emp.nickname && l.date >= fromDate && l.date <= toDate);
-    const sick = leaves.filter(l => l.type === 'ลาป่วย').reduce((s,l) => s+(Number(l.days)||1),0);
+    const leaves = DB.leave.filter(l => l.employee === emp.nickname);
+    const sick = leaves.filter(l => l.type === 'ลาป่วย').reduce((s,l) => s+(l.days||1),0);
     const absent = leaves.filter(l => l.type === 'ขาดงาน').length;
-    if (sick >= 3) alerts.push(`<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ลาป่วย ${sick} วัน ในช่วงที่เลือก</div>`);
-    if (absent >= 1) alerts.push(`<div class="alert alert-error"><i class="ti ti-x" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ขาดงาน ${absent} ครั้ง ในช่วงที่เลือก</div>`);
+    if (sick >= 5) alerts.push(`<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ลาป่วย ${sick} วัน</div>`);
+    if (absent >= 2) alerts.push(`<div class="alert alert-error"><i class="ti ti-x" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ขาดงาน ${absent} ครั้ง</div>`);
   });
   DB.documents.filter(d => d.expiry && d.expiry <= new Date(Date.now()+30*86400000).toISOString().slice(0,10)).forEach(d => {
     alerts.push(`<div class="alert alert-info"><i class="ti ti-file-text" style="font-size:14px;margin-top:2px"></i>เอกสาร "${d.name}" หมดอายุ ${fmtDate(d.expiry)}</div>`);
@@ -1323,13 +1138,13 @@ function renderDashboard() {
   document.getElementById('dashAlerts').innerHTML = alerts.length ? alerts.join('') : empty('ไม่มีแจ้งเตือน');
 
   // charts
-  renderDashCharts(fromDate, toDate);
+  renderDashCharts();
 }
 
-function renderDashCharts(fromDate, toDate) {
+function renderDashCharts() {
   const months = [];
   for (let i = 5; i >= 0; i--) {
-    const d = new Date((toDate||todayStr())+' 00:00:00'); d.setMonth(d.getMonth() - i);
+    const d = new Date(); d.setMonth(d.getMonth() - i);
     months.push(d.toISOString().slice(0,7));
   }
   const labels = months.map(m => { const d = new Date(m+'-01'); return MONTHS_TH[d.getMonth()]; });
@@ -1402,351 +1217,6 @@ function deleteEmployee(id) {
   save(); renderEmployees();
 }
 
-
-// ══════════════════════════════════
-// EMPLOYEE PROFILE (ประวัติรายคน)
-// ══════════════════════════════════
-function viewProfile(empId) {
-  const emp = DB.employees.find(e => e.id === empId);
-  if (!emp) return;
-  const nick = emp.nickname;
-  const col = colorForTeam(emp.team);
-
-  // ── Header ──
-  document.getElementById('epHeader').style.background = `var(--${col}-l)`;
-  document.getElementById('epAvatar').textContent = initials(emp.name || nick);
-  document.getElementById('epAvatar').style.background = `var(--${col}-d)`;
-  document.getElementById('epAvatar').style.color = '#fff';
-  document.getElementById('epName').textContent = nick + (emp.name && emp.name !== nick ? ` (${emp.name})` : '');
-  document.getElementById('epBadge').innerHTML = badgeStatus(emp.status);
-  document.getElementById('epSub').textContent = [emp.position, emp.team].filter(Boolean).join(' · ');
-
-  const meta = [];
-  if (emp.startDate) meta.push(`<span>📅 เริ่มงาน ${fmtDate(emp.startDate)}</span>`);
-  if (emp.phone) meta.push(`<span>📱 ${emp.phone}</span>`);
-  if (emp.line) meta.push(`<span>💬 LINE: ${emp.line}</span>`);
-  if (emp.email) meta.push(`<span>✉️ ${emp.email}</span>`);
-  if (emp.salary) meta.push(`<span>💰 ${fmtMoney(emp.salary)} บาท</span>`);
-  document.getElementById('epMeta').innerHTML = meta.join('');
-
-  // ── คำนวณ stats สรุป ──
-  const myLeave = DB.leave.filter(l => l.employee === nick);
-  const myAtt = DB.attendance.filter(a => a.employee === nick);
-  const myPay = DB.payroll.filter(p => p.employee === nick || p.nickname === nick);
-  const myKpi = DB.kpi.filter(k => k.employee === nick);
-  const myCoach = DB.coaching.filter(c => c.employee === nick);
-  const myWarn = (DB.warnings||[]).filter(w => w.employee === nick);
-  const myTrain = DB.training.filter(t => t.employee === nick);
-
-  const sick = myLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const vac = myLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const absent = myLeave.filter(l=>l.type==='ขาดงาน').length;
-  const late = myLeave.filter(l=>l.type==='มาสาย').length;
-  const avgKpi = myKpi.length ? (myKpi.reduce((s,k)=>s+(Number(k.score)||0),0)/myKpi.length).toFixed(1) : '—';
-
-  document.getElementById('epStats').innerHTML = [
-    ['ลาป่วย', sick+' วัน', 'pink'],
-    ['ลาพักร้อน', vac+' วัน', 'teal'],
-    ['ขาดงาน', absent+' ครั้ง', 'red'],
-    ['มาสาย', late+' ครั้ง', 'purple'],
-    ['avg KPI', avgKpi, 'blue'],
-    ['หนังสือเตือน', myWarn.length+' ฉบับ', myWarn.length?'red':'gray'],
-  ].map(([l,v,c]) => `
-    <div style="flex:1;text-align:center;padding:10px 4px;border-right:0.5px solid var(--border)">
-      <div style="font-size:15px;font-weight:700;color:var(--${c})">${v}</div>
-      <div style="font-size:10px;color:var(--text3);margin-top:2px">${l}</div>
-    </div>`).join('');
-
-  // ── Tab definitions ──
-  const tabs = [
-    { key:'info',    label:'ข้อมูลส่วนตัว', icon:'ti-user' },
-    { key:'leave',   label:`การลา (${myLeave.length})`, icon:'ti-calendar-off' },
-    { key:'att',     label:`Attendance (${myAtt.length})`, icon:'ti-clock' },
-    { key:'pay',     label:`Payroll (${myPay.length})`, icon:'ti-cash' },
-    { key:'loan',    label:`เงินกู้`, icon:'ti-cash-banknote' },
-    { key:'expense', label:`เบิกบริษัท`, icon:'ti-receipt' },
-    { key:'kpi',     label:`KPI (${myKpi.length})`, icon:'ti-chart-bar' },
-    { key:'coach',   label:`การคุย (${myCoach.length})`, icon:'ti-message-circle' },
-    { key:'train',   label:`Training (${myTrain.length})`, icon:'ti-book' },
-    { key:'warn',    label:`เตือน (${myWarn.length})`, icon:'ti-alert-triangle' },
-  ];
-
-  let activeTab = 'info';
-  function renderTab(key) {
-    activeTab = key;
-    document.querySelectorAll('.ep-tab').forEach(t => {
-      t.style.borderBottom = t.dataset.key === key ? '2px solid var(--blue)' : '2px solid transparent';
-      t.style.color = t.dataset.key === key ? 'var(--blue)' : 'var(--text2)';
-      t.style.fontWeight = t.dataset.key === key ? '600' : '400';
-    });
-
-    const body = document.getElementById('epBody');
-    const row = (label, val) => val ? `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px"><span style="color:var(--text3);min-width:110px;flex-shrink:0">${label}</span><span style="color:var(--text)">${val}</span></div>` : '';
-    const empty2 = t => `<div style="text-align:center;color:var(--text3);padding:2rem;font-size:13px">— ${t} —</div>`;
-    const badge2 = (t,c='gray') => `<span class="badge badge-${c}" style="font-size:11px">${t}</span>`;
-
-    if (key === 'info') {
-      body.innerHTML = `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-          ${row('ชื่อจริง', emp.name)}
-          ${row('ชื่อเล่น', emp.nickname)}
-          ${row('ตำแหน่ง', emp.position)}
-          ${row('ทีม', emp.team)}
-          ${row('เริ่มงาน', emp.startDate ? fmtDate(emp.startDate) : '')}
-          ${row('สถานะ', emp.status)}
-          ${row('เงินเดือน', emp.salary ? fmtMoney(emp.salary)+' บาท' : '')}
-          ${row('โทรศัพท์', emp.phone)}
-          ${row('LINE ID', emp.line)}
-          ${row('Email', emp.email)}
-          ${row('วันเกิด', emp.birth ? fmtDate(emp.birth) : '')}
-          ${row('ที่อยู่', emp.address)}
-          ${row('หมายเหตุ', emp.note)}
-        </div>`;
-    } else if (key === 'leave') {
-      body.innerHTML = myLeave.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr style="background:var(--surface)">
-          <th style="padding:6px 8px;text-align:left">วันที่</th>
-          <th style="padding:6px 8px;text-align:left">ประเภท</th>
-          <th style="padding:6px 8px;text-align:center">วัน</th>
-          <th style="padding:6px 8px;text-align:left">เหตุผล</th>
-          <th style="padding:6px 8px;text-align:center">ใบแพทย์</th>
-        </tr></thead>
-        <tbody>${[...myLeave].sort((a,b)=>b.date.localeCompare(a.date)).map(l=>`
-          <tr style="border-bottom:0.5px solid var(--border)">
-            <td style="padding:6px 8px;white-space:nowrap">${fmtDate(l.date)}</td>
-            <td style="padding:6px 8px">${badgeLeave(l.type)}</td>
-            <td style="padding:6px 8px;text-align:center">${Number(l.days)||1}</td>
-            <td style="padding:6px 8px;color:var(--text2)">${l.reason||'—'}</td>
-            <td style="padding:6px 8px;text-align:center">${l.medical==='yes'?'✓':'—'}</td>
-          </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติการลา');
-    } else if (key === 'att') {
-      const attRows = [...myAtt].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
-      body.innerHTML = attRows.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr style="background:var(--surface)">
-          <th style="padding:6px 8px;text-align:left">วันที่</th>
-          <th style="padding:6px 8px;text-align:left">สถานะ</th>
-          <th style="padding:6px 8px;text-align:left">เข้า</th>
-          <th style="padding:6px 8px;text-align:left">ออก</th>
-          <th style="padding:6px 8px;text-align:left">หมายเหตุ</th>
-        </tr></thead>
-        <tbody>${attRows.map(a=>`
-          <tr style="border-bottom:0.5px solid var(--border)">
-            <td style="padding:6px 8px;white-space:nowrap">${fmtDate(a.date)}</td>
-            <td style="padding:6px 8px">${a.status==='มาทำงาน'?badge2('มาทำงาน','teal'):a.status==='มาสาย'?badge2('มาสาย','purple'):badge2(a.status||'—','gray')}</td>
-            <td style="padding:6px 8px">${a.timeIn||'—'}</td>
-            <td style="padding:6px 8px">${a.timeOut||'—'}</td>
-            <td style="padding:6px 8px;color:var(--text2)">${a.note||'—'}</td>
-          </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Attendance');
-    } else if (key === 'loan') {
-      const myLoans = (DB.loans||[]).filter(x => x.employee === nick);
-      const activeLoans = myLoans.filter(x => x.status !== 'done');
-      const doneLoans = myLoans.filter(x => x.status === 'done');
-      const totalBorrowed = myLoans.reduce((s,x)=>s+(Number(x.total)||0),0);
-      const totalPaid = myLoans.reduce((s,x)=>s+(Number(x.paidAmount)||0),0);
-      const totalRemain = totalBorrowed - totalPaid;
-
-      body.innerHTML = myLoans.length ? `
-        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-          <div style="background:var(--pink-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
-            <div style="font-size:10px;color:var(--pink-d);margin-bottom:2px">กู้รวมทั้งหมด</div>
-            <div style="font-size:16px;font-weight:700;color:var(--pink-d)">${totalBorrowed.toLocaleString()} ฿</div>
-          </div>
-          <div style="background:var(--teal-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
-            <div style="font-size:10px;color:var(--teal-d);margin-bottom:2px">ชำระแล้ว</div>
-            <div style="font-size:16px;font-weight:700;color:var(--teal)">${totalPaid.toLocaleString()} ฿</div>
-          </div>
-          <div style="background:var(--amber-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
-            <div style="font-size:10px;color:var(--amber-d);margin-bottom:2px">ยอดคงเหลือ</div>
-            <div style="font-size:16px;font-weight:700;color:var(--amber)">${totalRemain.toLocaleString()} ฿</div>
-          </div>
-        </div>
-        ${myLoans.sort((a,b)=>b.date.localeCompare(a.date)).map(ln=>{
-          const remain = (Number(ln.total)||0) - (Number(ln.paidAmount)||0);
-          const pct = ln.total ? Math.round((ln.paidAmount||0)/ln.total*100) : 0;
-          const isDone = ln.status==='done';
-          return `<div style="border:0.5px solid var(--border2);border-radius:var(--rl);padding:12px 14px;margin-bottom:10px;${isDone?'opacity:.7':''}">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px">
-              <div>
-                <span style="font-size:13px;font-weight:600">วงเงิน ${Number(ln.total).toLocaleString()} ฿</span>
-                <span style="font-size:11px;color:var(--text3);margin-left:8px">${fmtDate(ln.date)} · ${ln.installs} งวด · งวดละ ${Number(ln.monthly).toLocaleString()} ฿</span>
-              </div>
-              ${isDone?'<span class="badge badge-teal">ชำระครบแล้ว ✓</span>':'<span class="badge badge-amber">กำลังผ่อน</span>'}
-            </div>
-            <div class="progress" style="margin-bottom:6px"><div class="progress-fill" style="width:${pct}%;background:${isDone?'var(--teal)':'var(--blue)'}"></div></div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)">
-              <span>ชำระแล้ว ${Number(ln.paidAmount||0).toLocaleString()} ฿ (${pct}%)</span>
-              <span>${isDone?'ชำระครบ':'คงเหลือ '+remain.toLocaleString()+' ฿'}</span>
-            </div>
-            ${ln.note?`<div style="font-size:11px;color:var(--text3);margin-top:6px">📝 ${ln.note}</div>`:''}
-          </div>`;
-        }).join('')}` : `<div style="text-align:center;padding:2.5rem;color:var(--text3)">
-          <i class="ti ti-cash-banknote" style="font-size:32px;display:block;margin-bottom:8px"></i>
-          <p style="font-size:13px">ไม่มีประวัติเงินกู้</p>
-          <button class="btn btn-primary btn-sm edit-only" style="margin-top:12px" onclick="openLoanModal('${nick}')"><i class="ti ti-plus"></i>บันทึกเงินกู้</button>
-        </div>`;
-    } else if (key === 'expense') {
-      const myExp = (DB.expenses||[]).filter(x => x.employee === nick);
-      const totalAmt = myExp.reduce((s,x)=>s+(Number(x.amount)||0),0);
-      const paidAmt = myExp.filter(x=>x.status==='paid').reduce((s,x)=>s+(Number(x.amount)||0),0);
-      const pendingAmt = totalAmt - paidAmt;
-      // group by month
-      const months = [...new Set(myExp.map(x=>x.month||x.date?.slice(0,7)||''))].filter(Boolean).sort().reverse();
-      body.innerHTML = myExp.length ? `
-        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-          <div style="background:var(--blue-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
-            <div style="font-size:10px;color:var(--blue-d);margin-bottom:2px">เบิกรวมทั้งหมด</div>
-            <div style="font-size:16px;font-weight:700;color:var(--blue)">${totalAmt.toLocaleString()} ฿</div>
-          </div>
-          <div style="background:var(--teal-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
-            <div style="font-size:10px;color:var(--teal-d);margin-bottom:2px">จ่ายแล้ว</div>
-            <div style="font-size:16px;font-weight:700;color:var(--teal)">${paidAmt.toLocaleString()} ฿</div>
-          </div>
-          <div style="background:var(--amber-l);border-radius:var(--r);padding:8px 14px;min-width:100px">
-            <div style="font-size:10px;color:var(--amber-d);margin-bottom:2px">ค้างจ่าย</div>
-            <div style="font-size:16px;font-weight:700;color:var(--amber)">${pendingAmt.toLocaleString()} ฿</div>
-          </div>
-        </div>
-        ${months.map(mo=>{
-          const items = myExp.filter(x=>(x.month||x.date?.slice(0,7)||'')=== mo).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-          const moPaid = items.filter(x=>x.status==='paid').reduce((s,x)=>s+(Number(x.amount)||0),0);
-          const moPending = items.reduce((s,x)=>s+(Number(x.amount)||0),0) - moPaid;
-          const d = new Date(mo+'-01'); const moTh = MONTHS_TH[d.getMonth()]+' '+(d.getFullYear()+543);
-          return `<div style="margin-bottom:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-              <div style="font-size:13px;font-weight:600;color:var(--text)">${moTh}</div>
-              <div style="font-size:11px;display:flex;gap:10px">
-                <span style="color:var(--teal)">จ่ายแล้ว ${moPaid.toLocaleString()}</span>
-                ${moPending>0?`<span style="color:var(--amber)">ค้าง ${moPending.toLocaleString()}</span>`:''}
-              </div>
-            </div>
-            <table style="width:100%;font-size:12px;border-collapse:collapse">
-              <thead><tr style="background:var(--gray-l)">
-                <th style="padding:5px 8px;text-align:left;font-weight:500;color:var(--text2)">วันที่</th>
-                <th style="padding:5px 8px;text-align:left;font-weight:500;color:var(--text2)">รายการ</th>
-                <th style="padding:5px 8px;text-align:right;font-weight:500;color:var(--text2)">จำนวน</th>
-                <th style="padding:5px 8px;text-align:center;font-weight:500;color:var(--text2)">สถานะ</th>
-                <th style="padding:5px 8px;text-align:left;font-weight:500;color:var(--text2)">วันที่จ่าย</th>
-                <th class="edit-only" style="padding:5px 4px"></th>
-              </tr></thead>
-              <tbody>${items.map(x=>`
-                <tr style="border-bottom:0.5px solid var(--border)">
-                  <td style="padding:5px 8px;white-space:nowrap">${fmtDate(x.date)}</td>
-                  <td style="padding:5px 8px">${x.desc||'—'}${x.note?`<div style="font-size:10px;color:var(--text3)">${x.note}</div>`:''}</td>
-                  <td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--blue)">${Number(x.amount).toLocaleString()}</td>
-                  <td style="padding:5px 8px;text-align:center">${x.status==='paid'?'<span class="badge badge-teal">จ่ายแล้ว</span>':'<span class="badge badge-amber">รอจ่าย</span>'}</td>
-                  <td style="padding:5px 8px;font-size:11px;color:var(--text3)">${x.paidDate?fmtDate(x.paidDate):'—'}</td>
-                  <td class="edit-only" style="padding:3px 4px;white-space:nowrap">
-                    ${x.status==='pending'?`<button class="btn btn-sm" style="background:var(--teal-l);color:var(--teal-d);font-size:10px;padding:3px 6px" onclick="markExpPaid('${x.id}')"><i class="ti ti-check"></i></button>`:''}
-                    <button class="btn btn-danger btn-sm" style="font-size:10px;padding:3px 6px" onclick="deleteExpense('${x.id}');viewProfile('${empId}')"><i class="ti ti-trash"></i></button>
-                  </td>
-                </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>`;
-        }).join('')}` : `<div style="text-align:center;padding:2.5rem;color:var(--text3)">
-          <i class="ti ti-receipt-off" style="font-size:32px;display:block;margin-bottom:8px"></i>
-          <p style="font-size:13px">ยังไม่มีรายการเบิก</p>
-          <button class="btn btn-primary btn-sm edit-only" style="margin-top:12px" onclick="openExpenseModal('${nick}')"><i class="ti ti-plus"></i>เพิ่มรายการเบิก</button>
-        </div>`;
-    } else if (key === 'pay') {
-      const netTotal = myPay.reduce((s,p)=>s+(Number(p.net)||0),0);
-      body.innerHTML = myPay.length ? `
-        <div style="font-size:12px;color:var(--text3);margin-bottom:8px">รวมจ่ายทั้งหมด: <strong style="color:var(--blue);font-size:14px">${fmtMoney(netTotal)} บาท</strong></div>
-        <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <thead><tr style="background:var(--surface)">
-            <th style="padding:6px 8px;text-align:left">เดือน</th>
-            <th style="padding:6px 8px;text-align:right">Base</th>
-            <th style="padding:6px 8px;text-align:right">OT</th>
-            <th style="padding:6px 8px;text-align:right">โบนัส</th>
-            <th style="padding:6px 8px;text-align:right">หัก</th>
-            <th style="padding:6px 8px;text-align:right">สุทธิ</th>
-          </tr></thead>
-          <tbody>${[...myPay].sort((a,b)=>b.month.localeCompare(a.month)).map(p=>`
-            <tr style="border-bottom:0.5px solid var(--border)">
-              <td style="padding:6px 8px">${p.month||'—'}</td>
-              <td style="padding:6px 8px;text-align:right">${fmtMoney(p.base||p.salary||0)}</td>
-              <td style="padding:6px 8px;text-align:right">${fmtMoney(p.ot||0)}</td>
-              <td style="padding:6px 8px;text-align:right">${fmtMoney(p.bonus||0)}</td>
-              <td style="padding:6px 8px;text-align:right;color:var(--red)">${fmtMoney((p.deductLeave||0)+(p.social||0)+(p.fund||0)+(p.loan||0)+(p.deduct||0))}</td>
-              <td style="padding:6px 8px;text-align:right;font-weight:600;color:var(--blue)">${fmtMoney(p.net||0)}</td>
-            </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Payroll');
-    } else if (key === 'kpi') {
-      body.innerHTML = myKpi.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr style="background:var(--surface)">
-          <th style="padding:6px 8px;text-align:left">เดือน</th>
-          <th style="padding:6px 8px;text-align:left">ตัวชี้วัด</th>
-          <th style="padding:6px 8px;text-align:right">เป้า</th>
-          <th style="padding:6px 8px;text-align:right">ทำได้</th>
-          <th style="padding:6px 8px;text-align:right">คะแนน</th>
-        </tr></thead>
-        <tbody>${[...myKpi].sort((a,b)=>b.month.localeCompare(a.month)).map(k=>{
-          const pct = k.target ? Math.round((k.sales/k.target)*100) : null;
-          return `<tr style="border-bottom:0.5px solid var(--border)">
-            <td style="padding:6px 8px">${k.month||'—'}</td>
-            <td style="padding:6px 8px">${k.metric||'—'}</td>
-            <td style="padding:6px 8px;text-align:right">${k.target||'—'}</td>
-            <td style="padding:6px 8px;text-align:right">${k.sales||'—'}${pct!=null?` <span style="font-size:10px;color:var(--text3)">(${pct}%)</span>`:''}</td>
-            <td style="padding:6px 8px;text-align:right;font-weight:600;color:${Number(k.score)>=80?'var(--teal)':Number(k.score)>=50?'var(--blue)':'var(--red)'}">${k.score||'—'}</td>
-          </tr>`;}).join('')}</tbody></table>` : empty2('ไม่มีประวัติ KPI');
-    } else if (key === 'coach') {
-      body.innerHTML = myCoach.length ? myCoach.sort((a,b)=>b.date.localeCompare(a.date)).map(c=>`
-        <div style="border:0.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:12px;font-weight:600">${c.topic||'การคุย'}</span>
-            <span style="font-size:11px;color:var(--text3)">${fmtDate(c.date)}</span>
-          </div>
-          ${c.detail?`<div style="font-size:12px;color:var(--text2);margin-top:4px">${c.detail}</div>`:''}
-          ${c.action?`<div style="font-size:11px;margin-top:6px;padding:4px 8px;background:var(--blue-l);color:var(--blue-d);border-radius:6px">📌 Action: ${c.action}</div>`:''}
-          ${c.result?`<div style="font-size:11px;margin-top:4px;color:var(--teal)">✅ ผล: ${c.result}</div>`:''}
-        </div>`).join('') : empty2('ไม่มีประวัติการ Coaching');
-    } else if (key === 'train') {
-      body.innerHTML = myTrain.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr style="background:var(--surface)">
-          <th style="padding:6px 8px;text-align:left">วันที่</th>
-          <th style="padding:6px 8px;text-align:left">หลักสูตร</th>
-          <th style="padding:6px 8px;text-align:left">ประเภท</th>
-          <th style="padding:6px 8px;text-align:right">ชั่วโมง</th>
-          <th style="padding:6px 8px;text-align:left">สถานะ</th>
-        </tr></thead>
-        <tbody>${[...myTrain].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(t=>`
-          <tr style="border-bottom:0.5px solid var(--border)">
-            <td style="padding:6px 8px;white-space:nowrap">${fmtDate(t.date||'')}</td>
-            <td style="padding:6px 8px;font-weight:500">${t.course||'—'}</td>
-            <td style="padding:6px 8px">${t.type||'—'}</td>
-            <td style="padding:6px 8px;text-align:right">${t.hours||'—'}</td>
-            <td style="padding:6px 8px">${t.status==='ผ่าน'?badge2('ผ่าน','teal'):t.status==='ไม่ผ่าน'?badge2('ไม่ผ่าน','red'):badge2(t.status||'—','gray')}</td>
-          </tr>`).join('')}</tbody></table>` : empty2('ไม่มีประวัติ Training');
-    } else if (key === 'warn') {
-      body.innerHTML = myWarn.length ? myWarn.sort((a,b)=>b.date.localeCompare(a.date)).map(w=>`
-        <div style="border:0.5px solid var(--red);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--red-l,#fff0f0)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:12px;font-weight:600;color:var(--red)">⚠️ ${w.level||'หนังสือเตือน'}</span>
-            <span style="font-size:11px;color:var(--text3)">${fmtDate(w.date)}</span>
-          </div>
-          <div style="font-size:12px;color:var(--text2);margin-top:4px">${w.reason||w.detail||'—'}</div>
-        </div>`).join('') : empty2('ไม่มีประวัติหนังสือเตือน');
-    }
-  }
-
-  document.getElementById('epTabs').innerHTML = tabs.map(t => `
-    <button class="ep-tab btn btn-ghost btn-sm" data-key="${t.key}"
-      style="border-radius:0;padding:10px 12px;border-bottom:2px solid transparent;white-space:nowrap;font-size:12px"
-      onclick="document.querySelector('.ep-tab[data-key=\"${t.key}\"]').click(); epRenderTab('${t.key}')">
-      <i class="ti ${t.icon}"></i>${t.label}
-    </button>`).join('');
-
-  // expose renderTab ให้ onclick ใช้ได้
-  window.epRenderTab = renderTab;
-
-  // wire tab clicks properly
-  document.querySelectorAll('.ep-tab').forEach(btn => {
-    btn.onclick = () => renderTab(btn.dataset.key);
-  });
-
-  renderTab('info');
-  document.getElementById('modalEmpProfile').classList.add('open');
-}
-
 function renderEmployees() {
   const q = document.getElementById('empSearch')?.value.toLowerCase() || '';
   const team = document.getElementById('empTeam')?.value || '';
@@ -1757,9 +1227,7 @@ function renderEmployees() {
     (!status || e.status === status)
   );
   const c = colorForTeam;
-  document.getElementById('empGrid').innerHTML = list.length ? list.map(e => {
-    const pendingExp = (DB.expenses||[]).filter(x=>x.employee===e.nickname&&x.status==='pending').reduce((s,x)=>s+(Number(x.amount)||0),0);
-    return `
+  document.getElementById('empGrid').innerHTML = list.length ? list.map(e => `
     <div class="card" style="padding:1rem;margin:0">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div class="avatar" style="background:var(--${c(e.team)}-l);color:var(--${c(e.team)}-d)">${initials(e.name||e.nickname)}</div>
@@ -1773,15 +1241,12 @@ function renderEmployees() {
         ${e.startDate ? `<div>เริ่มงาน ${fmtDate(e.startDate)}</div>` : ''}
         ${e.salary ? `<div>เงินเดือน ${fmtMoney(e.salary)}</div>` : ''}
         ${e.phone ? `<div>${e.phone}</div>` : ''}
-        ${pendingExp>0?`<div style="margin-top:4px;color:var(--amber);font-weight:500"><i class="ti ti-receipt" style="font-size:12px"></i> ค้างเบิก ${pendingExp.toLocaleString()} ฿</div>`:''}
-        ${(()=>{ const lnRemain=(DB.loans||[]).filter(l=>l.employee===e.nickname&&l.status!=='done').reduce((s,l)=>s+((Number(l.total)||0)-(Number(l.paidAmount)||0)),0); return lnRemain>0?`<div style="margin-top:2px;color:var(--red);font-weight:500"><i class="ti ti-cash-banknote" style="font-size:12px"></i> เงินกู้ค้าง ${lnRemain.toLocaleString()} ฿</div>`:''; })()}
       </div>
-      <div style="display:flex;gap:6px;margin-top:4px">
-        <button class="btn btn-sm" style="flex:1;background:var(--blue-l);color:var(--blue-d);font-size:12px" onclick="viewProfile('${e.id}')"><i class="ti ti-id-badge-2"></i>ดูประวัติ</button>
-        <button class="btn btn-ghost btn-sm edit-only" onclick="editEmployee('${e.id}')"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-danger btn-sm edit-only" onclick="deleteEmployee('${e.id}')"><i class="ti ti-trash"></i></button>
+      <div style="display:flex;gap:6px" class="edit-only">
+        <button class="btn btn-ghost btn-sm" onclick="editEmployee('${e.id}')"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteEmployee('${e.id}')"><i class="ti ti-trash"></i></button>
       </div>
-    </div>`}).join('')
+    </div>`).join('')
     : `<div style="grid-column:1/-1">${empty('ยังไม่มีพนักงาน — กด "+ เพิ่มพนักงาน"')}</div>`;
 }
 
@@ -1805,9 +1270,6 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
-  // ปรับ leaveMonth filter ให้ตรงกับเดือนที่บันทึก เพื่อให้เห็นข้อมูลทันที
-  const lmEl = document.getElementById('leaveMonth');
-  if (lmEl && obj.date) lmEl.value = obj.date.slice(0,7);
   save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
 }
@@ -1825,12 +1287,12 @@ function renderLeave() {
   if (!t) return;
   t.innerHTML = `<thead><tr><th>วันที่</th><th>ชื่อ</th><th>ประเภท</th><th>จำนวน</th><th>เหตุผล</th><th>ใบแพทย์</th><th class="edit-only"></th></tr></thead><tbody>${
     list.length ? list.map(l => `<tr>
-      <td>${fmtDate(l.date)}</td><td style="font-weight:500">${l.employee}</td>
-      <td>${badgeLeave(l.type)}</td><td>${l.days} วัน</td>
-      <td style="color:var(--text2)">${l.reason||'—'}</td>
+      <td>${fmtDate(l.date)}</td><td style="font-weight:500">${l.employee||'—'}</td>
+      <td>${badgeLeave(l.type)}</td><td>${l.days||1} วัน</td>
+      <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.reason||'—'}</td>
       <td>${l.medical === 'yes' ? '<span class="badge badge-teal">มี ✓</span>' : l.medical === 'no' ? '<span class="badge badge-gray">ไม่มี</span>' : '—'}</td>
       <td class="edit-only"><button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')"><i class="ti ti-trash"></i></button></td>
-    </tr>`).join('') : `<tr><td colspan="7">${empty('ไม่มีข้อมูล')}</td></tr>`
+    </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text3)">ยังไม่มีข้อมูลการลา</td></tr>`
   }</tbody>`;
 }
 
@@ -1845,9 +1307,9 @@ function renderLeaveSummary() {
     <thead><tr><th>ชื่อ</th><th>ลาป่วย</th><th>ลากิจ</th><th>ลาพักร้อน</th><th>ขาดงาน</th><th>มาสาย</th><th>รวมวัน</th></tr></thead>
     <tbody>${names.map(n => {
       const ls = DB.leave.filter(l => l.employee === n);
-      const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
-      const biz = ls.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0);
-      const vac = ls.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
+      const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(l.days||1),0);
+      const biz = ls.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(l.days||1),0);
+      const vac = ls.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(l.days||1),0);
       const ab = ls.filter(l=>l.type==='ขาดงาน').length;
       const late = ls.filter(l=>l.type==='มาสาย').length;
       return `<tr><td style="font-weight:500">${n}</td><td>${sick}</td><td>${biz}</td><td>${vac}</td><td style="color:var(--red)">${ab}</td><td style="color:var(--purple)">${late}</td><td style="font-weight:500">${sick+biz+vac}</td></tr>`;
@@ -1859,7 +1321,7 @@ function renderLeaveQuota() {
   document.getElementById('leaveQuota').innerHTML = emps.length ? `<div class="card"><div class="tbl-wrap"><table>
     <thead><tr><th>ชื่อ</th><th>ลาพักร้อนใช้ไป</th><th>โควตา 6 วัน</th><th>คงเหลือ</th></tr></thead>
     <tbody>${emps.map(e => {
-      const used = DB.leave.filter(l => l.employee === e.nickname && l.type === 'ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
+      const used = DB.leave.filter(l => l.employee === e.nickname && l.type === 'ลาพักร้อน').reduce((s,l)=>s+(l.days||1),0);
       const remaining = Math.max(0, 6 - used);
       return `<tr><td style="font-weight:500">${e.nickname}</td>
         <td>${used} วัน</td>
@@ -1944,7 +1406,7 @@ function renderRisk() {
     const ls = DB.leave.filter(l=>l.employee===emp.nickname);
     const absent = ls.filter(l=>l.type==='ขาดงาน').length;
     const late = ls.filter(l=>l.type==='มาสาย').length;
-    const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
+    const sick = ls.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(l.days||1),0);
     const score = absent*20 + late*10 + Math.min(sick*3,20);
     return {...emp, absent, late, sick, score};
   }).sort((a,b)=>b.score-a.score);
@@ -1983,25 +1445,6 @@ function autoFillEmpPay() {
     if(!document.getElementById('payBase').value || document.getElementById('payBase').value==='0') {
       document.getElementById('payBase').value = emp.salary||0;
       calcPay();
-    }
-  }
-  // แสดง hint เงินกู้ที่ค้างอยู่
-  const month = document.getElementById('payMonthF').value || thisMonth();
-  const activeLoans = (DB.loans||[]).filter(l=>l.employee===nick&&l.status!=='done');
-  const hint = document.getElementById('payLoanHint');
-  if(hint) {
-    if(activeLoans.length && nick) {
-      const monthly = activeLoans.reduce((s,l)=>s+(Number(l.monthly)||0),0);
-      const remain = activeLoans.reduce((s,l)=>s+((Number(l.total)||0)-(Number(l.paidAmount)||0)),0);
-      hint.textContent = `⚠️ มีเงินกู้ค้าง ${remain.toLocaleString()} ฿ · ยอดผ่อนงวดนี้ ${monthly.toLocaleString()} ฿`;
-      hint.style.display = 'block';
-      // ใส่ค่าอัตโนมัติถ้า field ยังเป็น 0
-      const loanEl = document.getElementById('payLoan');
-      if(loanEl && (loanEl.value===''||loanEl.value==='0')) {
-        loanEl.value = monthly; calcPay();
-      }
-    } else {
-      hint.style.display = 'none';
     }
   }
 }
@@ -2056,16 +1499,6 @@ function savePayroll() {
   if (!obj.employee||!obj.month) return alert('กรุณากรอกชื่อและเดือน');
   if (id){const i=DB.payroll.findIndex(p=>p.id===id);if(i>=0)DB.payroll[i]=obj;}
   else DB.payroll.push(obj);
-  // ถ้ามี payLoan > 0 บันทึกการหักเงินกู้อัตโนมัติ
-  if (obj.loan > 0 && !id) {
-    const activeLoans = (DB.loans||[]).filter(l=>l.employee===obj.employee&&l.status!=='done');
-    let remaining = obj.loan;
-    activeLoans.forEach(ln => {
-      if (remaining <= 0) return;
-      const deduct = Math.min(remaining, Number(ln.monthly)||0);
-      if (deduct > 0) { markLoanPayment(ln.id, obj.month, deduct); remaining -= deduct; }
-    });
-  }
   save();pushToSheets();closeModal('modalPayroll');renderPayroll();
   document.getElementById('payId').value='';
   // reset fields
@@ -2537,16 +1970,12 @@ function renderPipeline() {
       ${cards.length?cards.map(c=>{
         const score=c.score?`<span style="font-size:10px;color:var(--blue)">⭐${c.score}/10</span>`:'';
         const decision=c.decision?`<span class="badge badge-${c.decision==='รับเข้าทำงาน'?'teal':c.decision==='ไม่รับ'?'red':'amber'}" style="font-size:10px">${c.decision}</span>`:'';
-        return `<div class="card" style="margin-bottom:6px;padding:10px;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,.10)'" onmouseout="this.style.boxShadow=''" onclick="viewCandidate('${c.id}')">
+        return `<div class="card" style="margin-bottom:6px;padding:10px;cursor:pointer" onclick="viewCandidate('${c.id}')">
           <div style="font-weight:500;font-size:13px">${c.name}${c.nickname?' ('+c.nickname+')':''}</div>
           <div style="font-size:11px;color:var(--text3);margin:2px 0">${c.position||'—'} · ${c.team||'—'}</div>
           ${c.phone?`<div style="font-size:11px;color:var(--text3)">${c.phone}</div>`:''}
           <div style="display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap">${score}${decision}</div>
-          <div style="display:flex;gap:4px;margin-top:6px;align-items:center" onclick="event.stopPropagation()">
-            <button class="btn btn-sm" style="background:var(--blue-l);color:var(--blue-d);font-size:11px;padding:4px 8px;flex:1" onclick="viewCandidate('${c.id}')"><i class="ti ti-id-badge"></i>ดูประวัติ</button>
-            ${c.resume?`<a href="${c.resume}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 8px" title="เปิด Resume"><i class="ti ti-file-cv"></i></a>`:''}
-          </div>
-          <div style="display:flex;gap:4px;margin-top:4px" class="edit-only" onclick="event.stopPropagation()">
+          <div style="display:flex;gap:4px;margin-top:6px" class="edit-only" onclick="event.stopPropagation()">
             <select style="flex:1;border:0.5px solid var(--border2);border-radius:var(--r);padding:3px;font-size:11px" onchange="moveCandidate('${c.id}',this.value)">
               ${stages.map(st=>`<option${st===s?' selected':''}>${st}</option>`).join('')}
             </select>
@@ -2897,389 +2326,6 @@ function printWarning(id){
 }
 
 // ══════════════════════════════════
-// LOANS (เงินกู้บริษัท)
-// ══════════════════════════════════
-function openLoanModal(empNick) {
-  if (!DB.loans) DB.loans = [];
-  document.getElementById('loanId').value = '';
-  document.getElementById('loanEmp').value = empNick || '';
-  document.getElementById('loanDate').value = todayStr();
-  document.getElementById('loanTotal').value = '';
-  document.getElementById('loanInstalls').value = '';
-  document.getElementById('loanMonthly').value = '';
-  document.getElementById('loanStartMonth').value = thisMonth();
-  document.getElementById('loanNote').value = '';
-  document.getElementById('loanInstallPreview').style.display = 'none';
-  document.getElementById('loanModalTitle').textContent = 'บันทึกเงินกู้บริษัท';
-  openModal('modalLoan');
-}
-
-function fillLoanEmpInfo() {
-  // ไม่ต้องทำอะไรพิเศษ — placeholder เพื่อ extend ในอนาคต
-}
-
-function calcLoanInstall() {
-  const total = Number(document.getElementById('loanTotal').value)||0;
-  const installs = Number(document.getElementById('loanInstalls').value)||0;
-  const manualMonthly = Number(document.getElementById('loanMonthly').value)||0;
-  const preview = document.getElementById('loanInstallPreview');
-  if (total && installs) {
-    const monthly = manualMonthly || Math.ceil(total / installs);
-    if (!manualMonthly) document.getElementById('loanMonthly').value = monthly;
-    preview.style.display = 'block';
-    preview.innerHTML = `<i class="ti ti-calculator" style="font-size:14px"></i> วงเงิน <strong>${total.toLocaleString()}</strong> ฿ · ผ่อน <strong>${installs}</strong> งวด · งวดละ <strong>${monthly.toLocaleString()}</strong> ฿`;
-  } else {
-    preview.style.display = 'none';
-  }
-}
-
-function saveLoan() {
-  if (!DB.loans) DB.loans = [];
-  const id = document.getElementById('loanId').value;
-  const total = Number(document.getElementById('loanTotal').value)||0;
-  const installs = Number(document.getElementById('loanInstalls').value)||0;
-  const monthly = Number(document.getElementById('loanMonthly').value)||Math.ceil(total/installs);
-  const obj = {
-    id: id || uid(),
-    employee: document.getElementById('loanEmp').value.trim(),
-    date: document.getElementById('loanDate').value,
-    total,
-    installs,
-    monthly,
-    startMonth: document.getElementById('loanStartMonth').value,
-    note: document.getElementById('loanNote').value.trim(),
-    paidAmount: id ? ((DB.loans||[]).find(l=>l.id===id)?.paidAmount||0) : 0,
-    paidInstalls: id ? ((DB.loans||[]).find(l=>l.id===id)?.paidInstalls||0) : 0,
-    status: 'active'
-  };
-  if (!obj.employee||!obj.date||!obj.total||!obj.installs) return alert('กรุณากรอกข้อมูลให้ครบค่ะ');
-  if (id) { const i=DB.loans.findIndex(l=>l.id===id); if(i>=0) DB.loans[i]=obj; }
-  else DB.loans.push(obj);
-  save(); pushToSheets(); closeModal('modalLoan'); renderLoans();
-}
-
-function deleteLoan(id) {
-  if (!confirm('ลบเงินกู้รายการนี้?')) return;
-  DB.loans = (DB.loans||[]).filter(l=>l.id!==id);
-  save(); pushToSheets(); renderLoans();
-}
-
-// หัก 1 งวดจากเงินกู้นั้น (เรียกหลัง savePayroll ด้วยก็ได้)
-function markLoanPayment(loanId, month, amount) {
-  const ln = (DB.loans||[]).find(l=>l.id===loanId);
-  if (!ln) return;
-  ln.paidAmount = (Number(ln.paidAmount)||0) + amount;
-  ln.paidInstalls = (Number(ln.paidInstalls)||0) + 1;
-  // บันทึก payment history ใน DB.loans payments
-  if (!ln.payments) ln.payments = [];
-  ln.payments.push({ month, amount, paidDate: todayStr() });
-  // ถ้าชำระครบ
-  if (ln.paidAmount >= ln.total) { ln.status = 'done'; ln.paidAmount = ln.total; }
-  save(); pushToSheets();
-}
-
-function renderLoans() {
-  if (!DB.loans) DB.loans = [];
-  const active = DB.loans.filter(l=>l.status!=='done');
-  const done = DB.loans.filter(l=>l.status==='done');
-  const totalActive = active.reduce((s,l)=>s+((Number(l.total)||0)-(Number(l.paidAmount)||0)),0);
-  const totalBorrowed = DB.loans.reduce((s,l)=>s+(Number(l.total)||0),0);
-  const totalPaid = DB.loans.reduce((s,l)=>s+(Number(l.paidAmount)||0),0);
-
-  const statsEl = document.getElementById('loanStats');
-  if (statsEl) statsEl.innerHTML = `
-    <div class="stat"><div class="stat-label">สัญญากู้ทั้งหมด</div><div class="stat-val">${DB.loans.length}</div><div class="stat-sub">รายการ</div></div>
-    <div class="stat"><div class="stat-label">กำลังผ่อนอยู่</div><div class="stat-val" style="color:var(--amber)">${active.length}</div><div class="stat-sub">สัญญา</div></div>
-    <div class="stat"><div class="stat-label">ยอดค้างรวม</div><div class="stat-val" style="color:var(--red);font-size:18px">${(totalActive/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
-    <div class="stat"><div class="stat-label">ชำระครบแล้ว</div><div class="stat-val" style="color:var(--teal)">${done.length}</div><div class="stat-sub">สัญญา</div></div>
-  `;
-
-  const loanCard = (ln) => {
-    const remain = (Number(ln.total)||0) - (Number(ln.paidAmount)||0);
-    const pct = ln.total ? Math.round((ln.paidAmount||0)/ln.total*100) : 0;
-    const emp = DB.employees.find(e=>e.nickname===ln.employee);
-    const col = colorForTeam(emp?.team);
-    const nextMonth = getNextLoanMonth(ln);
-    return `<div class="card" style="margin-bottom:10px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:10px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="background:var(--${col}-l);color:var(--${col}-d)">${initials(emp?.name||ln.employee)}</div>
-          <div>
-            <div style="font-weight:600;font-size:14px">${ln.employee}</div>
-            <div style="font-size:11px;color:var(--text3)">${emp?.position||''} ${emp?.team?'· '+emp.team:''}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:14px;font-size:13px;flex-wrap:wrap;align-items:flex-start">
-          <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">วงเงิน</div><strong>${Number(ln.total).toLocaleString()}</strong></div>
-          <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">ผ่อนงวดละ</div><strong style="color:var(--blue)">${Number(ln.monthly).toLocaleString()} ฿</strong></div>
-          <div style="text-align:center"><div style="font-size:10px;color:var(--text3)">ชำระแล้ว</div><strong style="color:var(--teal)">${Number(ln.paidAmount||0).toLocaleString()} ฿</strong></div>
-          <div style="text-align:center"><div style="font-size:10px;color:var(--amber-d)">คงเหลือ</div><strong style="color:var(--amber)">${remain.toLocaleString()} ฿</strong></div>
-        </div>
-      </div>
-      <div class="progress" style="margin-bottom:6px">
-        <div class="progress-fill" style="width:${pct}%;background:var(--blue)"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-bottom:10px">
-        <span>${ln.paidInstalls||0}/${ln.installs} งวด (${pct}%) · เริ่ม ${ln.startMonth}</span>
-        <span>${ln.status==='done'?'✅ ชำระครบแล้ว':'งวดถัดไป: '+nextMonth}</span>
-      </div>
-      ${ln.note?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">📝 ${ln.note}</div>`:''}
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${ln.status!=='done'?`<button class="btn btn-sm edit-only" style="background:var(--teal-l);color:var(--teal-d);font-size:12px" onclick="quickPayLoan('${ln.id}')"><i class="ti ti-check"></i>บันทึกการหัก ${Number(ln.monthly).toLocaleString()} ฿</button>`:''}
-        <button class="btn btn-ghost btn-sm edit-only" onclick="openEditLoanModal('${ln.id}')"><i class="ti ti-edit"></i>แก้ไข</button>
-        <button class="btn btn-danger btn-sm edit-only" onclick="deleteLoan('${ln.id}')"><i class="ti ti-trash"></i></button>
-      </div>
-    </div>`;
-  };
-
-  const activeEl = document.getElementById('loanActiveList');
-  if (activeEl) activeEl.innerHTML = active.length ? active.sort((a,b)=>b.date.localeCompare(a.date)).map(loanCard).join('') : empty('ไม่มีเงินกู้ที่กำลังผ่อนอยู่');
-  const doneEl = document.getElementById('loanDoneList');
-  if (doneEl) doneEl.innerHTML = done.length ? done.sort((a,b)=>b.date.localeCompare(a.date)).map(loanCard).join('') : empty('ยังไม่มีสัญญาที่ชำระครบ');
-}
-
-function getNextLoanMonth(ln) {
-  if (!ln.startMonth) return '—';
-  const paid = Number(ln.paidInstalls)||0;
-  const [y,m] = ln.startMonth.split('-').map(Number);
-  const d = new Date(y, m-1+paid, 1);
-  return d.toISOString().slice(0,7);
-}
-
-function quickPayLoan(loanId) {
-  const ln = (DB.loans||[]).find(l=>l.id===loanId);
-  if (!ln) return;
-  const month = getNextLoanMonth(ln);
-  if (!confirm(`บันทึกการหักงวด ${month} จำนวน ${Number(ln.monthly).toLocaleString()} ฿ ให้ ${ln.employee}?`)) return;
-  markLoanPayment(loanId, month, Number(ln.monthly));
-  renderLoans(); renderLoanPayments();
-  alert(`บันทึกแล้ว ✓ ยอดคงเหลือ ${Math.max(0,(Number(ln.total)||0)-(Number(ln.paidAmount)||0)).toLocaleString()} ฿`);
-}
-
-function openEditLoanModal(id) {
-  const ln = (DB.loans||[]).find(l=>l.id===id); if(!ln) return;
-  document.getElementById('loanId').value = ln.id;
-  document.getElementById('loanEmp').value = ln.employee;
-  document.getElementById('loanDate').value = ln.date;
-  document.getElementById('loanTotal').value = ln.total;
-  document.getElementById('loanInstalls').value = ln.installs;
-  document.getElementById('loanMonthly').value = ln.monthly;
-  document.getElementById('loanStartMonth').value = ln.startMonth;
-  document.getElementById('loanNote').value = ln.note||'';
-  document.getElementById('loanModalTitle').textContent = 'แก้ไขเงินกู้';
-  calcLoanInstall();
-  openModal('modalLoan');
-}
-
-function renderLoanPayments() {
-  if (!DB.loans) DB.loans = [];
-  const q = (document.getElementById('loanPaySearch')?.value||'').toLowerCase();
-  const month = document.getElementById('loanPayMonth')?.value||'';
-  // รวม payment records จากทุก loan
-  const rows = [];
-  DB.loans.forEach(ln => {
-    (ln.payments||[]).forEach(p => {
-      if ((!q||ln.employee.toLowerCase().includes(q)) && (!month||p.month===month)) {
-        rows.push({ ...p, employee: ln.employee, loanId: ln.id, loanTotal: ln.total, monthly: ln.monthly });
-      }
-    });
-  });
-  rows.sort((a,b)=>(b.month||'').localeCompare(a.month||''));
-  const t = document.getElementById('loanPayTable'); if(!t) return;
-  t.innerHTML = `<thead><tr><th>เดือน</th><th>พนักงาน</th><th style="text-align:right">หักงวดนี้</th><th>วันที่บันทึก</th></tr></thead><tbody>${
-    rows.length ? rows.map(r=>`<tr>
-      <td>${r.month||'—'}</td>
-      <td style="font-weight:500">${r.employee}</td>
-      <td style="text-align:right;font-weight:600;color:var(--teal)">${Number(r.amount).toLocaleString()} ฿</td>
-      <td style="font-size:12px;color:var(--text3)">${fmtDate(r.paidDate)}</td>
-    </tr>`).join('') : `<tr><td colspan="4">${empty('ไม่มีประวัติการหัก')}</td></tr>`
-  }</tbody>`;
-}
-
-// ══════════════════════════════════
-// EXPENSES (เบิกบริษัท)
-// ══════════════════════════════════
-function initExpMonth() {
-  const el = document.getElementById('expFilterMonth');
-  if (el && !el.value) el.value = thisMonth();
-}
-
-function openExpenseModal(empNick) {
-  document.getElementById('expId').value = '';
-  document.getElementById('expEmp').value = empNick || '';
-  document.getElementById('expMonth').value = thisMonth();
-  document.getElementById('expDate').value = todayStr();
-  document.getElementById('expAmount').value = '';
-  document.getElementById('expDesc').value = '';
-  document.getElementById('expStatus').value = 'pending';
-  document.getElementById('expPaidDate').value = '';
-  document.getElementById('expNote').value = '';
-  document.getElementById('expModalTitle').textContent = 'บันทึกรายการเบิก';
-  openModal('modalExpense');
-}
-
-function editExpenseModal(id) {
-  const x = (DB.expenses||[]).find(e=>e.id===id); if(!x) return;
-  document.getElementById('expId').value = x.id;
-  document.getElementById('expEmp').value = x.employee||'';
-  document.getElementById('expMonth').value = x.month||'';
-  document.getElementById('expDate').value = x.date||'';
-  document.getElementById('expAmount').value = x.amount||'';
-  document.getElementById('expDesc').value = x.desc||'';
-  document.getElementById('expStatus').value = x.status||'pending';
-  document.getElementById('expPaidDate').value = x.paidDate||'';
-  document.getElementById('expNote').value = x.note||'';
-  document.getElementById('expModalTitle').textContent = 'แก้ไขรายการเบิก';
-  openModal('modalExpense');
-}
-
-function saveExpense() {
-  if (!DB.expenses) DB.expenses = [];
-  const id = document.getElementById('expId').value;
-  const obj = {
-    id: id || uid(),
-    employee: document.getElementById('expEmp').value.trim(),
-    month: document.getElementById('expMonth').value,
-    date: document.getElementById('expDate').value,
-    amount: Number(document.getElementById('expAmount').value)||0,
-    desc: document.getElementById('expDesc').value.trim(),
-    status: document.getElementById('expStatus').value,
-    paidDate: document.getElementById('expPaidDate').value,
-    note: document.getElementById('expNote').value.trim()
-  };
-  if (!obj.employee || !obj.month || !obj.amount) return alert('กรุณากรอกชื่อ เดือน และจำนวนเงิน');
-  if (id) { const i=DB.expenses.findIndex(e=>e.id===id); if(i>=0) DB.expenses[i]=obj; }
-  else DB.expenses.push(obj);
-  save(); pushToSheets(); closeModal('modalExpense'); renderExpenses(); renderExpAll();
-  document.getElementById('expId').value='';
-}
-
-function deleteExpense(id) {
-  if (!confirm('ลบรายการนี้?')) return;
-  DB.expenses = (DB.expenses||[]).filter(e=>e.id!==id);
-  save(); pushToSheets(); renderExpenses(); renderExpAll();
-}
-
-function markExpPaid(id) {
-  const x = (DB.expenses||[]).find(e=>e.id===id); if(!x) return;
-  x.status = 'paid'; x.paidDate = todayStr();
-  save(); pushToSheets(); renderExpenses(); renderExpAll();
-}
-
-function renderExpenses() {
-  if (!DB.expenses) DB.expenses = [];
-  const month = document.getElementById('expFilterMonth')?.value || thisMonth();
-  const list = DB.expenses.filter(x => (x.month||x.date?.slice(0,7)||'') === month);
-  const totalAmt = list.reduce((s,x)=>s+(Number(x.amount)||0),0);
-  const paidAmt = list.filter(x=>x.status==='paid').reduce((s,x)=>s+(Number(x.amount)||0),0);
-  const pendingAmt = totalAmt - paidAmt;
-  const empCount = [...new Set(list.map(x=>x.employee))].length;
-
-  document.getElementById('expStats').innerHTML = `
-    <div class="stat"><div class="stat-label">รายการทั้งหมด</div><div class="stat-val">${list.length}</div><div class="stat-sub">${empCount} คน</div></div>
-    <div class="stat"><div class="stat-label">ยอดเบิกรวม</div><div class="stat-val" style="color:var(--blue);font-size:18px">${(totalAmt/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
-    <div class="stat"><div class="stat-label">จ่ายแล้ว</div><div class="stat-val" style="color:var(--teal);font-size:18px">${(paidAmt/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
-    <div class="stat"><div class="stat-label">ค้างจ่าย</div><div class="stat-val" style="color:var(--amber);font-size:18px">${(pendingAmt/1000).toFixed(1)}K</div><div class="stat-sub">บาท</div></div>
-  `;
-
-  // รายคน
-  const emps = [...new Set(list.map(x=>x.employee))];
-  const el = document.getElementById('expByEmp');
-  if (!el) return;
-  if (!emps.length) { el.innerHTML = empty('ยังไม่มีรายการเบิกเดือนนี้'); return; }
-
-  el.innerHTML = emps.map(name => {
-    const items = list.filter(x=>x.employee===name).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const emp = DB.employees.find(e=>e.nickname===name);
-    const total = items.reduce((s,x)=>s+(Number(x.amount)||0),0);
-    const paid = items.filter(x=>x.status==='paid').reduce((s,x)=>s+(Number(x.amount)||0),0);
-    const pending = total - paid;
-    const col = colorForTeam(emp?.team);
-    return `<div class="card" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="background:var(--${col}-l);color:var(--${col}-d)">${initials(emp?.name||name)}</div>
-          <div>
-            <div style="font-weight:600;font-size:14px">${name}</div>
-            <div style="font-size:11px;color:var(--text3)">${emp?.position||''} ${emp?.team?'· '+emp.team:''}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:16px;font-size:13px;align-items:center">
-          <div><span style="color:var(--text3);font-size:11px">เบิกรวม</span><br><strong style="color:var(--blue)">${total.toLocaleString()} ฿</strong></div>
-          <div><span style="color:var(--text3);font-size:11px">จ่ายแล้ว</span><br><strong style="color:var(--teal)">${paid.toLocaleString()} ฿</strong></div>
-          <div><span style="color:var(--text3);font-size:11px">ค้างจ่าย</span><br><strong style="color:${pending>0?'var(--amber)':'var(--text3)'}">${pending.toLocaleString()} ฿</strong></div>
-          <button class="btn btn-primary btn-sm edit-only" onclick="openExpenseModal('${name}')"><i class="ti ti-plus"></i>เพิ่ม</button>
-        </div>
-      </div>
-      <div class="tbl-wrap"><table style="width:100%;font-size:12px;border-collapse:collapse">
-        <thead><tr>
-          <th style="padding:5px 8px;text-align:left;color:var(--text3)">วันที่</th>
-          <th style="padding:5px 8px;text-align:left;color:var(--text3)">รายการ</th>
-          <th style="padding:5px 8px;text-align:right;color:var(--text3)">จำนวน</th>
-          <th style="padding:5px 8px;text-align:center;color:var(--text3)">สถานะ</th>
-          <th style="padding:5px 8px;text-align:left;color:var(--text3)">วันที่จ่าย</th>
-          <th class="edit-only"></th>
-        </tr></thead>
-        <tbody>${items.map(x=>`
-          <tr style="border-bottom:0.5px solid var(--border)">
-            <td style="padding:5px 8px;white-space:nowrap">${fmtDate(x.date)}</td>
-            <td style="padding:5px 8px">${x.desc||'—'}${x.note?`<div style="font-size:10px;color:var(--text3)">${x.note}</div>`:''}</td>
-            <td style="padding:5px 8px;text-align:right;font-weight:600;color:var(--blue)">${Number(x.amount).toLocaleString()}</td>
-            <td style="padding:5px 8px;text-align:center">${x.status==='paid'?'<span class="badge badge-teal">จ่ายแล้ว</span>':'<span class="badge badge-amber">รอจ่าย</span>'}</td>
-            <td style="padding:5px 8px;font-size:11px;color:var(--text3)">${x.paidDate?fmtDate(x.paidDate):'—'}</td>
-            <td class="edit-only" style="padding:3px 6px;white-space:nowrap">
-              ${x.status==='pending'?`<button class="btn btn-sm" style="background:var(--teal-l);color:var(--teal-d);font-size:11px;padding:4px 7px" onclick="markExpPaid('${x.id}')"><i class="ti ti-check"></i>จ่ายแล้ว</button> `:''}
-              <button class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 7px" onclick="editExpenseModal('${x.id}')"><i class="ti ti-edit"></i></button>
-              <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 7px" onclick="deleteExpense('${x.id}')"><i class="ti ti-trash"></i></button>
-            </td>
-          </tr>`).join('')}
-          <tr style="background:var(--gray-l);font-weight:600">
-            <td colspan="2" style="padding:6px 8px">รวม ${name}</td>
-            <td style="padding:6px 8px;text-align:right;color:var(--blue)">${total.toLocaleString()}</td>
-            <td style="padding:6px 8px;text-align:center;color:var(--teal)">${paid.toLocaleString()} จ่ายแล้ว</td>
-            <td colspan="2" style="padding:6px 8px;color:var(--amber)">${pending>0?`ค้าง ${pending.toLocaleString()}`:'ครบแล้ว ✓'}</td>
-          </tr>
-        </tbody>
-      </table></div>
-    </div>`;
-  }).join('');
-}
-
-function renderExpAll() {
-  if (!DB.expenses) DB.expenses = [];
-  const q = (document.getElementById('expSearch')?.value||'').toLowerCase();
-  const st = document.getElementById('expStatusFilter')?.value||'';
-  const month = document.getElementById('expFilterMonth')?.value||'';
-  const list = DB.expenses.filter(x=>
-    (!q||(x.employee+x.desc+x.note).toLowerCase().includes(q))&&
-    (!st||x.status===st)&&
-    (!month||(x.month||x.date?.slice(0,7)||'')===month)
-  ).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-
-  const t = document.getElementById('expTable'); if(!t) return;
-  t.innerHTML = `<thead><tr>
-    <th>วันที่</th><th>พนักงาน</th><th>เดือน</th><th>รายการ</th>
-    <th style="text-align:right">จำนวน</th><th>สถานะ</th><th>วันที่จ่าย</th>
-    <th class="edit-only"></th>
-  </tr></thead><tbody>${
-    list.length ? list.map(x=>`<tr>
-      <td>${fmtDate(x.date)}</td>
-      <td style="font-weight:500">${x.employee}</td>
-      <td>${x.month||'—'}</td>
-      <td>${x.desc||'—'}${x.note?`<div style="font-size:10px;color:var(--text3)">${x.note}</div>`:''}</td>
-      <td style="text-align:right;font-weight:600;color:var(--blue)">${Number(x.amount).toLocaleString()}</td>
-      <td>${x.status==='paid'?'<span class="badge badge-teal">จ่ายแล้ว</span>':'<span class="badge badge-amber">รอจ่าย</span>'}</td>
-      <td style="font-size:11px;color:var(--text3)">${x.paidDate?fmtDate(x.paidDate):'—'}</td>
-      <td class="edit-only" style="white-space:nowrap">
-        ${x.status==='pending'?`<button class="btn btn-sm" style="background:var(--teal-l);color:var(--teal-d);font-size:11px;padding:3px 7px" onclick="markExpPaid('${x.id}');"><i class="ti ti-check"></i></button> `:''}
-        <button class="btn btn-ghost btn-sm" onclick="editExpenseModal('${x.id}')"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="deleteExpense('${x.id}')"><i class="ti ti-trash"></i></button>
-      </td>
-    </tr>`).join('') : `<tr><td colspan="8">${empty('ไม่มีข้อมูล')}</td></tr>`
-  }</tbody>`;
-}
-
-// ══════════════════════════════════
 // BIRTHDAY ALERTS
 // ══════════════════════════════════
 function getBirthdayAlerts() {
@@ -3607,19 +2653,16 @@ async function initAutoSync() {
   renderDashboard();
 }
 
-// Set defaults ก่อน initAutoSync เสมอ (ป้องกัน renderDashboard รันก่อน dashFrom/dashTo ถูก set)
+initAutoSync();
+
+// Set today defaults
 const el=document.getElementById('attDateF');if(el)el.value=todayStr();
 const el2=document.getElementById('coachDate');if(el2)el2.value=todayStr();
 const el3=document.getElementById('annDate');if(el3)el3.value=todayStr();
 const el4=document.getElementById('candDate');if(el4)el4.value=todayStr();
 const el5=document.getElementById('payMonthF');if(el5)el5.value=thisMonth();
 const el6=document.getElementById('kpiMonthF');if(el6)el6.value=thisMonth();
-const elLM=document.getElementById('leaveMonth');if(elLM)elLM.value=thisMonth();
-// Dashboard date range — ต้อง set ก่อน initAutoSync
-const dashFrom=document.getElementById('dashFrom');if(dashFrom)dashFrom.value=thisMonth()+'-01';
-const dashTo=document.getElementById('dashTo');if(dashTo)dashTo.value=lastDayOfMonth(thisMonth());
-
-initAutoSync();
+const el7=document.getElementById('leaveFrom');if(el7)el7.value=todayStr();
 </script>
 </body>
 </html>
