@@ -1045,6 +1045,13 @@ function nav(page) {
     const firstPane = document.getElementById('leave-list');
     if(firstTab) firstTab.classList.add('active');
     if(firstPane) firstPane.classList.add('active');
+    // clear filter ทุกครั้ง เพื่อให้เห็นข้อมูลทั้งหมด
+    const leaveSearchEl = document.getElementById('leaveSearch');
+    const leaveTypeEl   = document.getElementById('leaveType');
+    const leaveMonthEl  = document.getElementById('leaveMonth');
+    if(leaveSearchEl) leaveSearchEl.value = '';
+    if(leaveTypeEl)   leaveTypeEl.value   = '';
+    if(leaveMonthEl)  leaveMonthEl.value  = '';
     renderLeave(); renderLeaveSummary(); renderLeaveQuota();
   }
   if (page === 'attendance') { initAttDate(); renderAttDaily(); renderRisk(); }
@@ -1582,9 +1589,6 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
-  // ปรับ leaveMonth filter ให้ตรงกับเดือนที่บันทึก เพื่อให้เห็นข้อมูลทันที
-  const lmEl = document.getElementById('leaveMonth');
-  if (lmEl && obj.date) lmEl.value = obj.date.slice(0,7);
   save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
 }
