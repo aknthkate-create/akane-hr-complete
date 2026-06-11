@@ -1185,7 +1185,11 @@ function renderDashboard() {
   document.getElementById('dashDate').textContent = rangeLabel;
 
   const activeEmp = DB.employees.filter(e => e.status === 'active').length;
-  const filteredLeave = DB.leave.filter(l => l.date >= fromDate && l.date <= toDate);
+  // normalize เพื่อป้องกัน date format ไม่ตรง
+  const filteredLeave = DB.leave.filter(l => {
+    const d = (l.date||'').slice(0,10);
+    return d >= fromDate && d <= toDate;
+  });
   const filteredAtt = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
   const totalPay = DB.payroll.filter(p => p.month === thisMonth()).reduce((s,p) => s + (p.net||0), 0);
   document.getElementById('dashStats').innerHTML = `
@@ -1194,47 +1198,44 @@ function renderDashboard() {
     <div class="stat"><div class="stat-label">Attendance ในช่วง</div><div class="stat-val" style="color:var(--teal)">${filteredAtt.length}</div><div class="stat-sub">รายการ</div></div>
     <div class="stat"><div class="stat-label">Payroll เดือนนี้</div><div class="stat-val" style="color:var(--blue)">${(totalPay/1000).toFixed(0)}K</div><div class="stat-sub">บาทสุทธิ</div></div>
   `;
-  // ─── สรุปช่วงที่เลือก ───
+    // ─── สรุปช่วงที่เลือก ───
   const summRangeLabel = `📅 สรุป ${fmtDate(fromDate)} — ${fmtDate(toDate)}`;
   const rl = document.getElementById('dashRangeLabel');
   if(rl) rl.textContent = summRangeLabel;
 
-  const sick    = filteredLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const biz     = filteredLeave.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const vac     = filteredLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const absent  = filteredLeave.filter(l=>l.type==='ขาดงาน').length;
-  const late    = filteredLeave.filter(l=>l.type==='มาสาย').length;
+  const sick   = filteredLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
+  const biz    = filteredLeave.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0);
+  const vac    = filteredLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
+  const absent = filteredLeave.filter(l=>l.type==='ขาดงาน').length;
+  const late   = filteredLeave.filter(l=>l.type==='มาสาย').length;
 
-  // คนที่ลามากสุด — นับจาก filteredLeave ทุก record
   const leaveByEmp = {};
-  filteredLeave.forEach(l => {
-    leaveByEmp[l.employee] = (leaveByEmp[l.employee]||0) + 1;
-  });
+  filteredLeave.forEach(l => { leaveByEmp[l.employee] = (leaveByEmp[l.employee]||0) + 1; });
   const topEmp = Object.entries(leaveByEmp).sort((a,b)=>b[1]-a[1])[0];
 
   const summEl = document.getElementById('dashLeaveSummaryCard');
   if(summEl) {
     summEl.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px">
-        <div style="text-align:center;padding:8px;background:var(--pink-l);border-radius:var(--r)">
-          <div style="font-size:20px;font-weight:600;color:var(--pink)">${sick}</div>
-          <div style="font-size:11px;color:var(--pink-d)">ลาป่วย (วัน)</div>
+        <div style="text-align:center;padding:10px 8px;background:var(--pink-l);border-radius:var(--r)">
+          <div style="font-size:22px;font-weight:600;color:var(--pink)">${sick}</div>
+          <div style="font-size:11px;color:var(--pink-d);margin-top:2px">ลาป่วย (วัน)</div>
         </div>
-        <div style="text-align:center;padding:8px;background:var(--amber-l);border-radius:var(--r)">
-          <div style="font-size:20px;font-weight:600;color:var(--amber)">${biz}</div>
-          <div style="font-size:11px;color:var(--amber-d)">ลากิจ (วัน)</div>
+        <div style="text-align:center;padding:10px 8px;background:var(--amber-l);border-radius:var(--r)">
+          <div style="font-size:22px;font-weight:600;color:var(--amber)">${biz}</div>
+          <div style="font-size:11px;color:var(--amber-d);margin-top:2px">ลากิจ (วัน)</div>
         </div>
-        <div style="text-align:center;padding:8px;background:var(--teal-l);border-radius:var(--r)">
-          <div style="font-size:20px;font-weight:600;color:var(--teal)">${vac}</div>
-          <div style="font-size:11px;color:var(--teal-d)">ลาพักร้อน (วัน)</div>
+        <div style="text-align:center;padding:10px 8px;background:var(--teal-l);border-radius:var(--r)">
+          <div style="font-size:22px;font-weight:600;color:var(--teal)">${vac}</div>
+          <div style="font-size:11px;color:var(--teal-d);margin-top:2px">ลาพักร้อน (วัน)</div>
         </div>
-        <div style="text-align:center;padding:8px;background:var(--red-l);border-radius:var(--r)">
-          <div style="font-size:20px;font-weight:600;color:var(--red)">${absent}</div>
-          <div style="font-size:11px;color:var(--red-d)">ขาดงาน (ครั้ง)</div>
+        <div style="text-align:center;padding:10px 8px;background:var(--red-l);border-radius:var(--r)">
+          <div style="font-size:22px;font-weight:600;color:var(--red)">${absent}</div>
+          <div style="font-size:11px;color:var(--red-d);margin-top:2px">ขาดงาน (ครั้ง)</div>
         </div>
-        <div style="text-align:center;padding:8px;background:var(--purple-l);border-radius:var(--r)">
-          <div style="font-size:20px;font-weight:600;color:var(--purple)">${late}</div>
-          <div style="font-size:11px;color:var(--purple-d)">มาสาย (ครั้ง)</div>
+        <div style="text-align:center;padding:10px 8px;background:var(--purple-l);border-radius:var(--r)">
+          <div style="font-size:22px;font-weight:600;color:var(--purple)">${late}</div>
+          <div style="font-size:11px;color:var(--purple-d);margin-top:2px">มาสาย (ครั้ง)</div>
         </div>
       </div>
       <div style="display:flex;gap:16px;font-size:13px;color:var(--text2);flex-wrap:wrap">
@@ -1243,8 +1244,8 @@ function renderDashboard() {
       </div>`;
   }
 
-  // ─── การลาล่าสุด (ทั้งหมด ไม่ filter range) ───
-  const recentLeave = [...DB.leave].filter(l=>l.date).sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
+  // ─── การลาล่าสุด ───
+  const recentLeave = [...DB.leave].filter(l=>l.date).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
   document.getElementById('dashLeaveList').innerHTML = recentLeave.length
     ? recentLeave.map(l => {
         const emp = DB.employees.find(e=>e.nickname===l.employee);
@@ -1649,42 +1650,32 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
+  // ปรับ leaveMonth filter ให้ตรงกับเดือนที่บันทึก เพื่อให้เห็นข้อมูลทันที
+  const lmEl = document.getElementById('leaveMonth');
+  if (lmEl && obj.date) lmEl.value = obj.date.slice(0,7);
   save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
 }
 
 function renderLeave() {
-  const q     = (document.getElementById('leaveSearch')?.value||'').toLowerCase();
-  const type  = document.getElementById('leaveType')?.value  || '';
+  const q = document.getElementById('leaveSearch')?.value.toLowerCase() || '';
+  const type = document.getElementById('leaveType')?.value || '';
   const month = document.getElementById('leaveMonth')?.value || '';
-  // ถ้าไม่ได้ filter เดือน → แสดงทั้งหมด เรียงล่าสุดก่อน
-  const list = [...DB.leave].filter(l =>
-    (!q     || (l.employee||'').toLowerCase().includes(q)) &&
-    (!type  || l.type === type) &&
+  const list = DB.leave.filter(l =>
+    (!q || (l.employee||'').toLowerCase().includes(q)) &&
+    (!type || l.type === type) &&
     (!month || (l.date||'').startsWith(month))
   ).sort((a,b) => (b.date||'').localeCompare(a.date||''));
   const t = document.getElementById('leaveTable');
   if (!t) return;
-  t.innerHTML = `<thead><tr>
-    <th>วันที่</th><th>ชื่อ</th><th>ทีม</th><th>ประเภท</th><th>จำนวน</th><th>เหตุผล / ไปไหน</th><th>ใบแพทย์</th><th class="edit-only"></th>
-  </tr></thead><tbody>${
-    list.length ? list.map(l => {
-      const emp = DB.employees.find(e=>e.nickname===l.employee);
-      const tc  = colorForTeam(emp?.team||'');
-      return `<tr>
-        <td>${fmtDate(l.date)}</td>
-        <td style="font-weight:500">${l.employee}</td>
-        <td><span class="badge badge-${tc}" style="font-size:10px">${emp?.team||'—'}</span></td>
-        <td>${badgeLeave(l.type)}</td>
-        <td>${l.days||1} วัน</td>
-        <td style="color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.reason||''}">${l.reason||'—'}</td>
-        <td>${l.medical==='yes'?'<span class="badge badge-teal">มี ✓</span>':l.medical==='no'?'<span class="badge badge-gray">ไม่มี</span>':'—'}</td>
-        <td class="edit-only"><button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')"><i class="ti ti-trash"></i></button></td>
-      </tr>`;
-    }).join('')
-    : `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text3)">
-        ${DB.leave.length===0?'ยังไม่มีข้อมูลการลา — กด "+ บันทึกการลา" เพื่อเพิ่ม':'ไม่พบข้อมูลตาม filter ที่เลือก'}
-      </td></tr>`
+  t.innerHTML = `<thead><tr><th>วันที่</th><th>ชื่อ</th><th>ประเภท</th><th>จำนวน</th><th>เหตุผล</th><th>ใบแพทย์</th><th class="edit-only"></th></tr></thead><tbody>${
+    list.length ? list.map(l => `<tr>
+      <td>${fmtDate(l.date)}</td><td style="font-weight:500">${l.employee}</td>
+      <td>${badgeLeave(l.type)}</td><td>${l.days} วัน</td>
+      <td style="color:var(--text2)">${l.reason||'—'}</td>
+      <td>${l.medical === 'yes' ? '<span class="badge badge-teal">มี ✓</span>' : l.medical === 'no' ? '<span class="badge badge-gray">ไม่มี</span>' : '—'}</td>
+      <td class="edit-only"><button class="btn btn-danger btn-sm" onclick="deleteLeave('${l.id}')"><i class="ti ti-trash"></i></button></td>
+    </tr>`).join('') : `<tr><td colspan="7">${empty('ไม่มีข้อมูล')}</td></tr>`
   }</tbody>`;
 }
 
@@ -3037,6 +3028,8 @@ async function initAutoSync() {
       save(); // อัปเดต localStorage ให้ตรงกัน
       document.getElementById('syncDot').className = 'status-dot on';
       document.getElementById('syncTxt').textContent = 'sync แล้ว ✓';
+      // re-render dashboard หลัง sync เสร็จ เพื่อให้ filteredLeave มีข้อมูล
+      renderDashboard();
     } else {
       document.getElementById('syncTxt').textContent = 'ใช้ข้อมูลในเครื่อง';
     }
