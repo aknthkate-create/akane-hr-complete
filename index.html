@@ -236,22 +236,12 @@ tr:hover td{background:var(--gray-l)}
     <div class="stats" id="dashStats"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
       <div class="card">
-        <div class="card-title"><i class="ti ti-calendar-off" style="color:var(--pink)"></i>การลาในช่วงที่เลือก</div>
+        <div class="card-title"><i class="ti ti-calendar-off" style="color:var(--pink)"></i>การลาล่าสุด</div>
         <div id="dashLeaveList"></div>
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-alert-triangle" style="color:var(--amber)"></i>ต้องติดตาม</div>
         <div id="dashAlerts"></div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
-      <div class="card">
-        <div class="card-title"><i class="ti ti-building-community" style="color:var(--teal)"></i>ภาพรวมการลาแต่ละทีม</div>
-        <div id="dashTeamLeave"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><i class="ti ti-clipboard-list" style="color:var(--blue)"></i>สรุปช่วงที่เลือก</div>
-        <div id="dashRangeSummary"></div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
@@ -1055,6 +1045,10 @@ function nav(page) {
     const firstPane = document.getElementById('leave-list');
     if(firstTab) firstTab.classList.add('active');
     if(firstPane) firstPane.classList.add('active');
+    // clear filter ทุกครั้ง
+    const lsEl=document.getElementById('leaveSearch'); if(lsEl) lsEl.value='';
+    const ltEl=document.getElementById('leaveType');   if(ltEl) ltEl.value='';
+    const lmEl=document.getElementById('leaveMonth');  if(lmEl) lmEl.value='';
     renderLeave(); renderLeaveSummary(); renderLeaveQuota();
   }
   if (page === 'attendance') { initAttDate(); renderAttDaily(); renderRisk(); }
@@ -1094,11 +1088,6 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
-  // clear leaveId ทุกครั้งที่ปิด modal ป้องกัน form ค้างสถานะ edit
-  if (id === 'modalLeave') {
-    const li = document.getElementById('leaveId');
-    if (li) li.value = '';
-  }
 }
 document.addEventListener('click', e => {
   if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
@@ -1184,131 +1173,43 @@ function resetDashDate() {
 
 function renderDashboard() {
   const fromEl = document.getElementById('dashFrom');
-  const toEl   = document.getElementById('dashTo');
+  const toEl = document.getElementById('dashTo');
   const fromDate = fromEl?.value || (thisMonth()+'-01');
-  const toDate   = toEl?.value   || lastDayOfMonth(thisMonth());
-  const isSingleDay = fromDate === toDate;
-  const rangeLabel = isSingleDay
+  const toDate = toEl?.value || lastDayOfMonth(thisMonth());
+  const rangeLabel = fromDate === toDate
     ? `วันที่ ${fmtDate(fromDate)}`
     : `${fmtDate(fromDate)} — ${fmtDate(toDate)}`;
   document.getElementById('dashDate').textContent = rangeLabel;
 
-  const activeEmp    = DB.employees.filter(e => e.status === 'active').length;
-  const filteredLeave = DB.leave.filter(l => l.date && l.date >= fromDate && l.date <= toDate);
-  const filteredAtt  = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
-  const totalPay     = DB.payroll.filter(p => p.month === thisMonth()).reduce((s,p) => s+(Number(p.net)||0), 0);
-
+  const activeEmp = DB.employees.filter(e => e.status === 'active').length;
+  const filteredLeave = DB.leave.filter(l => l.date >= fromDate && l.date <= toDate);
+  const filteredAtt = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
+  const totalPay = DB.payroll.filter(p => p.month === thisMonth()).reduce((s,p) => s + (p.net||0), 0);
   document.getElementById('dashStats').innerHTML = `
     <div class="stat"><div class="stat-label">พนักงานทั้งหมด</div><div class="stat-val">${activeEmp}</div><div class="stat-sub">คน (active)</div></div>
-    <div class="stat"><div class="stat-label">ลา${isSingleDay?'วันนี้':'ในช่วงนี้'}</div><div class="stat-val" style="color:var(--pink)">${filteredLeave.length}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat"><div class="stat-label">ลาในช่วงที่เลือก</div><div class="stat-val" style="color:var(--pink)">${filteredLeave.length}</div><div class="stat-sub">รายการ</div></div>
     <div class="stat"><div class="stat-label">Attendance ในช่วง</div><div class="stat-val" style="color:var(--teal)">${filteredAtt.length}</div><div class="stat-sub">รายการ</div></div>
     <div class="stat"><div class="stat-label">Payroll เดือนนี้</div><div class="stat-val" style="color:var(--blue)">${(totalPay/1000).toFixed(0)}K</div><div class="stat-sub">บาทสุทธิ</div></div>
   `;
+  const recentLeave = [...DB.leave].filter(l=>l.date).sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
+  document.getElementById('dashLeaveList').innerHTML = recentLeave.length
+    ? recentLeave.map(l => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(l.employee)}</div>
+          <div><div style="font-size:13px;font-weight:500">${l.employee}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(l.date)}</div></div>
+        </div>
+        ${badgeLeave(l.type)}
+      </div>`).join('')
+    : empty('ยังไม่มีข้อมูลการลา');
 
-  // ── การลา (กรองตามช่วงที่เลือก) + หมายเหตุ ──
-  const sortedLeave = [...filteredLeave].sort((a,b) => b.date.localeCompare(a.date));
-  const leaveTypeColor = { 'ลาป่วย':'pink','ลากิจ':'blue','ลาพักร้อน':'teal','ขาดงาน':'red','มาสาย':'purple' };
-
-  document.getElementById('dashLeaveList').innerHTML = sortedLeave.length
-    ? sortedLeave.map(l => {
-        const emp = DB.employees.find(e => e.nickname === l.employee);
-        const team = emp?.team || '';
-        const tc   = leaveTypeColor[l.type] || 'gray';
-        const days = Number(l.days)||1;
-        const note = l.reason || '';
-        const dateRange = (l.dateTo && l.dateTo !== l.date)
-          ? `${fmtDate(l.date)} – ${fmtDate(l.dateTo)}`
-          : fmtDate(l.date);
-        return `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-            <div style="display:flex;align-items:center;gap:8px;min-width:0">
-              <div class="avatar" style="width:30px;height:30px;font-size:10px;flex-shrink:0">${initials(l.employee)}</div>
-              <div style="min-width:0">
-                <div style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px">
-                  ${l.employee}
-                  ${team?`<span style="font-size:10px;color:var(--text3);font-weight:400">${team}</span>`:''}
-                </div>
-                <div style="font-size:11px;color:var(--text3)">${dateRange} · ${days} วัน</div>
-              </div>
-            </div>
-            <span class="badge badge-${tc}" style="white-space:nowrap;flex-shrink:0">${l.type}</span>
-          </div>
-          ${note ? `<div style="margin-top:4px;margin-left:38px;font-size:11px;color:var(--text2);background:var(--surface);border-radius:6px;padding:4px 8px;border-left:2px solid var(--${tc},var(--border2))">📝 ${note}</div>` : ''}
-        </div>`;
-      }).join('')
-    : `<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">
-        <i class="ti ti-calendar-check" style="font-size:24px;display:block;margin-bottom:6px;opacity:.4"></i>
-        ${isSingleDay ? 'ไม่มีใครลาวันนี้ 🎉' : 'ไม่มีข้อมูลการลาในช่วงที่เลือก'}
-      </div>`;
-
-  // ── ภาพรวมการลาแต่ละทีม ──
-  const teams = [...new Set(DB.employees.filter(e=>e.status==='active').map(e=>e.team).filter(Boolean))].sort();
-  const leaveTypes = ['ลาป่วย','ลากิจ','ลาพักร้อน','ขาดงาน','มาสาย'];
-  const typeColors = {'ลาป่วย':'var(--pink)','ลากิจ':'var(--blue)','ลาพักร้อน':'var(--teal)','ขาดงาน':'var(--red)','มาสาย':'var(--purple)'};
-
-  document.getElementById('dashTeamLeave').innerHTML = teams.length ? teams.map(team => {
-    const teamEmps = DB.employees.filter(e=>e.status==='active'&&e.team===team);
-    const teamLeave = filteredLeave.filter(l => teamEmps.some(e=>e.nickname===l.employee));
-    if (!teamLeave.length) return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)">
-      <div style="font-size:13px;font-weight:500">${team} <span style="font-size:11px;color:var(--text3);font-weight:400">(${teamEmps.length} คน)</span></div>
-      <span style="font-size:11px;color:var(--text3)">ไม่มีการลา</span>
-    </div>`;
-    const typeBreakdown = leaveTypes.map(t => {
-      const cnt = teamLeave.filter(l=>l.type===t).reduce((s,l)=>s+(Number(l.days)||1),0);
-      return cnt ? `<span style="font-size:10px;padding:2px 6px;border-radius:20px;background:var(--surface);color:${typeColors[t]};border:0.5px solid ${typeColors[t]}">${t} ${cnt}วัน</span>` : '';
-    }).filter(Boolean).join('');
-    const names = [...new Set(teamLeave.map(l=>l.employee))].join(', ');
-    return `<div style="padding:7px 0;border-bottom:0.5px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <div style="font-size:13px;font-weight:600">${team} <span style="font-size:11px;color:var(--text3);font-weight:400">(${teamEmps.length} คน)</span></div>
-        <span style="font-size:11px;color:var(--pink);font-weight:600">${teamLeave.length} รายการ</span>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">👤 ${names}</div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap">${typeBreakdown}</div>
-    </div>`;
-  }).join('') : `<div style="text-align:center;padding:1.5rem;color:var(--text3);font-size:13px">ยังไม่มีข้อมูลพนักงาน</div>`;
-
-  // ── สรุปช่วงที่เลือก ──
-  const sick   = filteredLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const biz    = filteredLeave.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const vac    = filteredLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
-  const absent = filteredLeave.filter(l=>l.type==='ขาดงาน').length;
-  const late   = filteredLeave.filter(l=>l.type==='มาสาย').length;
-  const topEmp = (() => {
-    const cnt = {}; filteredLeave.forEach(l=>cnt[l.employee]=(cnt[l.employee]||0)+1);
-    const top = Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
-    return top ? `${top[0]} (${top[1]} ครั้ง)` : '—';
-  })();
-  const summaryRows = [
-    ['ลาป่วย', sick+' วัน', 'var(--pink)'],
-    ['ลากิจ', biz+' วัน', 'var(--blue)'],
-    ['ลาพักร้อน', vac+' วัน', 'var(--teal)'],
-    ['ขาดงาน', absent+' ครั้ง', 'var(--red)'],
-    ['มาสาย', late+' ครั้ง', 'var(--purple)'],
-    ['คนที่ลามากสุด', topEmp, 'var(--text)'],
-  ];
-  document.getElementById('dashRangeSummary').innerHTML = `
-    <div style="font-size:12px;color:var(--text3);margin-bottom:8px;padding-bottom:6px;border-bottom:0.5px solid var(--border)">
-      ${isSingleDay ? `📅 สรุปวันที่ ${fmtDate(fromDate)}` : `📅 สรุป ${fmtDate(fromDate)} — ${fmtDate(toDate)}`}
-    </div>
-    ${summaryRows.map(([l,v,c])=>`
-      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:13px">
-        <span style="color:var(--text3)">${l}</span>
-        <span style="font-weight:600;color:${c}">${v}</span>
-      </div>`).join('')}
-    <div style="margin-top:10px;padding:8px;background:var(--surface);border-radius:8px;text-align:center">
-      <div style="font-size:20px;font-weight:700;color:var(--pink)">${filteredLeave.length}</div>
-      <div style="font-size:11px;color:var(--text3)">รายการลารวม</div>
-    </div>`;
-
-  // ── alerts ──
+  // alerts
   const alerts = [];
   DB.employees.filter(e => e.status === 'active').forEach(emp => {
-    const leaves = filteredLeave.filter(l => l.employee === emp.nickname);
-    const sickDays = leaves.filter(l => l.type === 'ลาป่วย').reduce((s,l) => s+(Number(l.days)||1),0);
-    const absentCnt = leaves.filter(l => l.type === 'ขาดงาน').length;
-    if (sickDays >= 3) alerts.push(`<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ลาป่วย ${sickDays} วัน ในช่วงที่เลือก</div>`);
-    if (absentCnt >= 1) alerts.push(`<div class="alert alert-error"><i class="ti ti-x" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ขาดงาน ${absentCnt} ครั้ง ในช่วงที่เลือก</div>`);
+    const leaves = DB.leave.filter(l => l.employee === emp.nickname && l.date >= fromDate && l.date <= toDate);
+    const sick = leaves.filter(l => l.type === 'ลาป่วย').reduce((s,l) => s+(Number(l.days)||1),0);
+    const absent = leaves.filter(l => l.type === 'ขาดงาน').length;
+    if (sick >= 3) alerts.push(`<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ลาป่วย ${sick} วัน ในช่วงที่เลือก</div>`);
+    if (absent >= 1) alerts.push(`<div class="alert alert-error"><i class="ti ti-x" style="font-size:14px;margin-top:2px"></i>${emp.nickname} ขาดงาน ${absent} ครั้ง ในช่วงที่เลือก</div>`);
   });
   DB.documents.filter(d => d.expiry && d.expiry <= new Date(Date.now()+30*86400000).toISOString().slice(0,10)).forEach(d => {
     alerts.push(`<div class="alert alert-info"><i class="ti ti-file-text" style="font-size:14px;margin-top:2px"></i>เอกสาร "${d.name}" หมดอายุ ${fmtDate(d.expiry)}</div>`);
@@ -1685,19 +1586,8 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
-  save(); pushToSheets();
-  closeModal('modalLeave');
+  save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
-  // sync leaveMonth filter ให้ตรงเดือนที่บันทึก
-  const lmEl2 = document.getElementById('leaveMonth');
-  if (lmEl2 && obj.date) lmEl2.value = obj.date.slice(0,7);
-  // ถ้าอยู่หน้า leave อยู่แล้วให้ render ตรง ถ้าไม่ให้ nav ไปก่อน
-  if (document.getElementById('page-leave').classList.contains('active')) {
-    renderLeave();
-  } else {
-    nav('leave');
-  }
-  renderDashboard();
 }
 
 function renderLeave() {
