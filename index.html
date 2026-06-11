@@ -1118,23 +1118,7 @@ function switchTab(btn, paneId) {
 // HELPERS
 // ══════════════════════════════════
 const MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-function fmtDate(d) {
-  if (!d) return '—';
-  try {
-    // new Date() รองรับทุก format รวมถึง "Wed Jun 10 2026 00:00:00 GMT+0700"
-    const dt = new Date(d);
-    if (isNaN(dt)) return String(d);
-    // ใช้ UTC เพื่อป้องกัน timezone shift
-    const s = String(d).trim();
-    // ถ้าเป็น YYYY-MM-DD ให้ parse manual เพื่อป้องกัน timezone
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-      const [y,m,day] = s.split('-').map(Number);
-      return `${day} ${MONTHS_TH[m-1]} ${y+543}`;
-    }
-    // format อื่นๆ ใช้ local time
-    return `${dt.getDate()} ${MONTHS_TH[dt.getMonth()]} ${dt.getFullYear()+543}`;
-  } catch(e) { return String(d); }
-}
+function fmtDate(d) { if (!d) return '—'; const dt = new Date(d); return `${dt.getDate()} ${MONTHS_TH[dt.getMonth()]} ${dt.getFullYear()+543}`; }
 function todayStr() { return new Date().toISOString().slice(0,10); }
 function thisMonth() { return new Date().toISOString().slice(0,7); }
 function num(n) { return (Number(n)||0).toLocaleString(); }
@@ -1196,12 +1180,7 @@ function renderDashboard() {
   const activeEmp = DB.employees.filter(e => e.status === 'active').length;
   // normalize เพื่อป้องกัน date format ไม่ตรง
   const filteredLeave = DB.leave.filter(l => {
-    if (!l.date) return false;
-    // normalize เป็น YYYY-MM-DD ก่อน compare
-    let d = String(l.date).trim();
-    if (!/^\d{4}-\d{2}-\d{2}/.test(d)) {
-      try { const dt=new Date(d); if(!isNaN(dt)){const y=dt.getFullYear(),m=String(dt.getMonth()+1).padStart(2,'0'),dd=String(dt.getDate()).padStart(2,'0');d=`${y}-${m}-${dd}`;} } catch(e){}
-    } else { d=d.slice(0,10); }
+    const d = (l.date||'').slice(0,10);
     return d >= fromDate && d <= toDate;
   });
   const filteredAtt = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
@@ -1214,13 +1193,23 @@ function renderDashboard() {
   `;
   const recentLeave = [...DB.leave].filter(l=>l.date).sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
   document.getElementById('dashLeaveList').innerHTML = recentLeave.length
-    ? recentLeave.map(l => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(l.employee)}</div>
-          <div><div style="font-size:13px;font-weight:500">${l.employee}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(l.date)}</div></div>
+    ? recentLeave.map(l => {
+      const emp = DB.employees.find(e=>e.nickname===l.employee);
+      const tc  = colorForTeam(emp?.team||'');
+      return `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--${tc}-l);color:var(--${tc}-d)">${initials(l.employee)}</div>
+            <div>
+              <div style="font-size:13px;font-weight:500">${l.employee}</div>
+              <div style="font-size:11px;color:var(--text3)">${fmtDate(l.date)}${Number(l.days)>1?' · '+l.days+' วัน':''}</div>
+            </div>
+          </div>
+          ${badgeLeave(l.type)}
         </div>
-        ${badgeLeave(l.type)}
-      </div>`).join('')
+        ${l.reason?`<div style="font-size:12px;color:var(--text2);padding:3px 0 0 36px"><i class="ti ti-map-pin" style="font-size:11px;color:var(--text3)"></i> ${l.reason}</div>`:''}
+      </div>`;
+    }).join('')
     : empty('ยังไม่มีข้อมูลการลา');
 
   // alerts
