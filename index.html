@@ -1344,6 +1344,110 @@ function renderDashSummaryCard(filteredLeave, fromDate, toDate) {
     </div>`;
 }
 
+
+// ══════════════════════════════════
+// กราฟอัตราการลารายวัน
+// ══════════════════════════════════
+function renderDashWeekChart() {
+  const canvas = document.getElementById('chartWeekLeave');
+  if (!canvas) return;
+
+  const sel = document.getElementById('weekRangeSel')?.value || '7';
+  const customWrap = document.getElementById('weekCustomRange');
+  if (customWrap) customWrap.style.display = sel === 'custom' ? 'flex' : 'none';
+
+  const days = [], labels = [];
+  const DAYS_TH = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  const today2 = new Date();
+
+  if (sel === 'custom') {
+    const wf = document.getElementById('weekFrom')?.value;
+    const wt = document.getElementById('weekTo')?.value;
+    if (!wf || !wt) return;
+    let cur = new Date(wf);
+    const end = new Date(wt);
+    while (cur <= end) {
+      const ds = cur.toISOString().slice(0,10);
+      days.push(ds);
+      labels.push(DAYS_TH[cur.getDay()]+' '+cur.getDate()+'/'+(cur.getMonth()+1));
+      cur.setDate(cur.getDate()+1);
+    }
+  } else {
+    const n = Number(sel);
+    for (let i=n-1; i>=0; i--) {
+      const d = new Date(today2);
+      d.setDate(d.getDate()-i);
+      const ds = d.toISOString().slice(0,10);
+      days.push(ds);
+      labels.push(n<=14
+        ? DAYS_TH[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)
+        : d.getDate()+'/'+(d.getMonth()+1));
+    }
+  }
+
+  const todayD = todayStr();
+  // normalize date จาก Sheets
+  function ndLeave(v) {
+    if (!v) return '';
+    const s = String(v).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+    try { const dt=new Date(s); if(!isNaN(dt)) return dt.toISOString().slice(0,10); } catch(e){}
+    return s.slice(0,10);
+  }
+
+  const counts = days.map(day =>
+    DB.leave.filter(l => ndLeave(l.date) === day).length
+  );
+
+  if (canvas._chart) canvas._chart.destroy();
+  canvas._chart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: days.map(d => d===todayD ? '#D4537E' : '#F4C0D1'),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.raw + ' คน',
+            afterLabel: ctx => {
+              const day = days[ctx.dataIndex];
+              return DB.leave.filter(l=>ndLeave(l.date)===day).map(l=>'  · '+l.employee+' ('+l.type+')');
+            }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero:true, ticks:{ stepSize:1, precision:0 }, grid:{ color:'rgba(0,0,0,0.04)' } },
+        x: { grid:{ display:false }, ticks:{ font:{ size:10 } } }
+      }
+    }
+  });
+
+  // สรุปวันที่มีคนลาใต้กราฟ
+  const detailEl = document.getElementById('weekLeaveDetail');
+  if (detailEl) {
+    const daysWithLeave = days.filter((d,i) => counts[i] > 0);
+    if (!daysWithLeave.length) { detailEl.innerHTML = ''; return; }
+    detailEl.innerHTML = daysWithLeave.map(day => {
+      const leaves = DB.leave.filter(l=>ndLeave(l.date)===day);
+      const d = new Date(day);
+      return `<div style="padding:5px 0;border-top:0.5px solid var(--border);font-size:12px">
+        <span style="color:var(--text3)">${DAYS_TH[d.getDay()]} ${d.getDate()}/${d.getMonth()+1} — ${leaves.length} คน &nbsp;</span>
+        ${leaves.map(l=>`<span class="badge badge-${{'ลาป่วย':'pink','ลากิจ':'amber','ลาพักร้อน':'teal','ขาดงาน':'red','มาสาย':'purple'}[l.type]||'gray'}" style="font-size:10px;margin-right:3px">${l.employee}</span>`).join('')}
+      </div>`;
+    }).join('');
+  }
+}
+
 function renderDashCharts(fromDate, toDate) {
   const months = [];
   for (let i = 5; i >= 0; i--) {
