@@ -241,11 +241,27 @@ tr:hover td{background:var(--gray-l)}
       <div id="dashToday"></div>
     </div>
 
-    <!-- สัปดาห์ + สรุปช่วง -->
+    <!-- กราฟสัปดาห์ + สรุปช่วง -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
       <div class="card">
-        <div class="card-title"><i class="ti ti-chart-bar" style="color:var(--blue)"></i>อัตราการลารายวัน (7 วันล่าสุด)</div>
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span><i class="ti ti-chart-bar" style="color:var(--blue)"></i>อัตราการลารายวัน</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <select id="weekRangeSel" onchange="renderDashWeekChart()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:4px 8px;font-size:12px;font-family:var(--ff);color:var(--text);background:var(--surface)">
+              <option value="7">7 วันล่าสุด</option>
+              <option value="14">14 วัน</option>
+              <option value="30">30 วัน</option>
+              <option value="custom">กำหนดเอง</option>
+            </select>
+            <div id="weekCustomRange" style="display:none;gap:4px;align-items:center">
+              <input type="date" id="weekFrom" onchange="renderDashWeekChart()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:4px 6px;font-size:11px;font-family:var(--ff)">
+              <span style="font-size:11px;color:var(--text3)">ถึง</span>
+              <input type="date" id="weekTo" onchange="renderDashWeekChart()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:4px 6px;font-size:11px;font-family:var(--ff)">
+            </div>
+          </div>
+        </div>
         <canvas id="chartWeekLeave" height="160"></canvas>
+        <div id="weekLeaveDetail" style="margin-top:10px"></div>
       </div>
       <div class="card">
         <div class="card-title"><i class="ti ti-calendar-stats" style="color:var(--pink)"></i>สรุปช่วงที่เลือก <span id="dashRangeLabel" style="font-size:12px;font-weight:400;color:var(--text3)"></span></div>
@@ -1067,6 +1083,10 @@ function nav(page) {
     const firstPane = document.getElementById('leave-list');
     if(firstTab) firstTab.classList.add('active');
     if(firstPane) firstPane.classList.add('active');
+    // clear filter ทุกครั้งที่กดเมนู
+    const _ls=document.getElementById('leaveSearch'); if(_ls)_ls.value='';
+    const _lt=document.getElementById('leaveType');   if(_lt)_lt.value='';
+    const _lm=document.getElementById('leaveMonth');  if(_lm)_lm.value='';
     renderLeave(); renderLeaveSummary(); renderLeaveQuota();
   }
   if (page === 'attendance') { initAttDate(); renderAttDaily(); renderRisk(); }
@@ -1140,14 +1160,6 @@ function switchTab(btn, paneId) {
 // HELPERS
 // ══════════════════════════════════
 const MONTHS_TH = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-function _ndDate(v) {
-  if (!v) return '';
-  const s = String(v).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
-  if (s.includes('T')) return s.slice(0,10);
-  try { const dt=new Date(s); if(!isNaN(dt)){const y=dt.getFullYear(),m=String(dt.getMonth()+1).padStart(2,'0'),d=String(dt.getDate()).padStart(2,'0');return `${y}-${m}-${d}`;} } catch(e){}
-  return s.slice(0,10);
-}
 function fmtDate(d) { if (!d) return '—'; const dt = new Date(d); return `${dt.getDate()} ${MONTHS_TH[dt.getMonth()]} ${dt.getFullYear()+543}`; }
 function todayStr() { return new Date().toISOString().slice(0,10); }
 function thisMonth() { return new Date().toISOString().slice(0,7); }
@@ -1210,7 +1222,11 @@ function renderDashboard() {
   const activeEmp = DB.employees.filter(e => e.status === 'active').length;
   // normalize เพื่อป้องกัน date format ไม่ตรง
   const filteredLeave = DB.leave.filter(l => {
-    const d = (l.date||'').slice(0,10);
+    if (!l.date) return false;
+    let d = String(l.date).trim();
+    if (!/^\\d{4}-\\d{2}-\\d{2}/.test(d)) {
+      try { const dt=new Date(d); if(!isNaN(dt)){const y=dt.getFullYear(),mo=String(dt.getMonth()+1).padStart(2,'0'),dd=String(dt.getDate()).padStart(2,'0');d=`${y}-${mo}-${dd}`;} } catch(e){}
+    } else { d=d.slice(0,10); }
     return d >= fromDate && d <= toDate;
   });
   const filteredAtt = DB.attendance.filter(a => a.date >= fromDate && a.date <= toDate);
@@ -1223,23 +1239,13 @@ function renderDashboard() {
   `;
   const recentLeave = [...DB.leave].filter(l=>l.date).sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
   document.getElementById('dashLeaveList').innerHTML = recentLeave.length
-    ? recentLeave.map(l => {
-      const emp = DB.employees.find(e=>e.nickname===l.employee);
-      const tc  = colorForTeam(emp?.team||'');
-      return `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--${tc}-l);color:var(--${tc}-d)">${initials(l.employee)}</div>
-            <div>
-              <div style="font-size:13px;font-weight:500">${l.employee}</div>
-              <div style="font-size:11px;color:var(--text3)">${fmtDate(l.date)}${Number(l.days)>1?' · '+l.days+' วัน':''}</div>
-            </div>
-          </div>
-          ${badgeLeave(l.type)}
+    ? recentLeave.map(l => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="avatar" style="width:28px;height:28px;font-size:10px">${initials(l.employee)}</div>
+          <div><div style="font-size:13px;font-weight:500">${l.employee}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(l.date)}</div></div>
         </div>
-        ${l.reason?`<div style="font-size:12px;color:var(--text2);padding:3px 0 0 36px"><i class="ti ti-map-pin" style="font-size:11px;color:var(--text3)"></i> ${l.reason}</div>`:''}
-      </div>`;
-    }).join('')
+        ${badgeLeave(l.type)}
+      </div>`).join('')
     : empty('ยังไม่มีข้อมูลการลา');
 
   // alerts
@@ -1263,39 +1269,34 @@ function renderDashboard() {
   // charts
   renderDashCharts(fromDate, toDate);
   renderDashToday();
-  renderDashWeekChart();
+  if (typeof renderDashWeekChart === 'function') renderDashWeekChart();
   renderDashSummaryCard(filteredLeave, fromDate, toDate);
 }
 
-// ══════════════════════════
+
+// ══════════════════════════════════
 // วันนี้ — ใครลาบ้าง
-// ══════════════════════════
+// ══════════════════════════════════
 function renderDashToday() {
   const el = document.getElementById('dashToday');
   const lbl = document.getElementById('dashTodayLabel');
   if (!el) return;
   const today = todayStr();
   if (lbl) lbl.textContent = fmtDate(today);
-
-  // normalize date แล้วหาคนลาวันนี้
   const todayLeave = DB.leave.filter(l => {
     if (!l.date) return false;
     let d = String(l.date).trim();
-    if (!/^\d{4}-\d{2}-\d{2}/.test(d)) {
+    if (!/^\\d{4}-\\d{2}-\\d{2}/.test(d)) {
       try { const dt=new Date(d); if(!isNaN(dt)){const y=dt.getFullYear(),mo=String(dt.getMonth()+1).padStart(2,'0'),dd2=String(dt.getDate()).padStart(2,'0');d=`${y}-${mo}-${dd2}`;} } catch(e){}
     } else { d=d.slice(0,10); }
     return d === today;
   });
-
   if (!todayLeave.length) {
     el.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px"><i class="ti ti-mood-happy" style="font-size:24px;display:block;margin-bottom:4px"></i>ไม่มีพนักงานลาวันนี้</div>';
     return;
   }
-
   el.innerHTML = `
-    <div style="margin-bottom:10px;font-size:13px;color:var(--text2)">
-      ลา <strong style="color:var(--pink)">${todayLeave.length} คน</strong>
-    </div>
+    <div style="margin-bottom:10px;font-size:13px;color:var(--text2)">ลา <strong style="color:var(--pink)">${todayLeave.length} คน</strong></div>
     <div style="display:flex;flex-direction:column;gap:6px">
       ${todayLeave.map(l => {
         const emp = DB.employees.find(e=>e.nickname===l.employee);
@@ -1313,62 +1314,12 @@ function renderDashToday() {
     </div>`;
 }
 
-// ══════════════════════════
-// กราฟ 7 วันล่าสุด
-// ══════════════════════════
-function renderDashWeekChart() {
-  const canvas = document.getElementById('chartWeekLeave');
-  if (!canvas) return;
-
-  const days = [];
-  const labels = [];
-  const DAYS_TH = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
-  for (let i=6; i>=0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const ds = d.toISOString().slice(0,10);
-    days.push(ds);
-    labels.push(`${DAYS_TH[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`);
-  }
-
-  const counts = days.map(day =>
-    DB.leave.filter(l => {
-      if (!l.date) return false;
-      const d = _ndDate(l.date);
-      return d === day;
-    }).length
-  );
-
-  if (canvas._chart) canvas._chart.destroy();
-  canvas._chart = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: counts,
-        backgroundColor: counts.map((c,i) => days[i]===todayStr() ? '#D4537E' : '#F4C0D1'),
-        borderRadius: 6,
-        borderSkipped: false
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.04)' } },
-        x: { grid: { display: false } }
-      }
-    }
-  });
-}
-
-// ══════════════════════════
+// ══════════════════════════════════
 // สรุปช่วงที่เลือก (card)
-// ══════════════════════════
+// ══════════════════════════════════
 function renderDashSummaryCard(filteredLeave, fromDate, toDate) {
   const rlEl = document.getElementById('dashRangeLabel');
   if(rlEl) rlEl.textContent = `📅 ${fmtDate(fromDate)} — ${fmtDate(toDate)}`;
-
   const _sick   = filteredLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0);
   const _biz    = filteredLeave.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0);
   const _vac    = filteredLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0);
@@ -1377,7 +1328,6 @@ function renderDashSummaryCard(filteredLeave, fromDate, toDate) {
   const leaveByEmp = {};
   filteredLeave.forEach(l=>{ leaveByEmp[l.employee]=(leaveByEmp[l.employee]||0)+1; });
   const topEmp = Object.entries(leaveByEmp).sort((a,b)=>b[1]-a[1])[0];
-
   const summEl = document.getElementById('dashLeaveSummaryCard');
   if (!summEl) return;
   summEl.innerHTML = `
@@ -1756,9 +1706,6 @@ function saveLeave() {
   if (!obj.employee || !obj.date) return alert('กรุณากรอกชื่อและวันที่');
   if (id) { const i = DB.leave.findIndex(l => l.id === id); if (i >= 0) DB.leave[i] = obj; }
   else DB.leave.push(obj);
-  // ปรับ leaveMonth filter ให้ตรงกับเดือนที่บันทึก เพื่อให้เห็นข้อมูลทันที
-  const lmEl = document.getElementById('leaveMonth');
-  if (lmEl && obj.date) lmEl.value = obj.date.slice(0,7);
   save();pushToSheets(); closeModal('modalLeave'); renderLeave(); renderDashboard();
   document.getElementById('leaveId').value = '';
 }
