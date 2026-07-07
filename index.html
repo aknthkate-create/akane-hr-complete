@@ -190,6 +190,7 @@ tr:hover td{background:var(--gray-l)}
   <div class="sb-section">เวลางาน</div>
   <button class="sb-item" onclick="nav('leave')"><i class="ti ti-calendar-off"></i>บันทึกการลา</button>
   <button class="sb-item" onclick="nav('attendance')"><i class="ti ti-clock"></i>Attendance Dashboard</button>
+  <button class="sb-item" onclick="nav('leaveinsight')"><i class="ti ti-chart-dots"></i>วิเคราะห์การลา</button>
 
   <div class="sb-section">เงินเดือน</div>
   <button class="sb-item" onclick="nav('payroll')"><i class="ti ti-cash"></i>Payroll</button>
@@ -364,6 +365,48 @@ tr:hover td{background:var(--gray-l)}
     </div>
     <div class="tab-pane" id="leave-quota">
       <div id="leaveQuota"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LEAVE INSIGHT ── -->
+<div class="page" id="page-leaveinsight">
+  <div style="padding:2rem">
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div><div class="page-title">วิเคราะห์การลา</div><div class="page-sub">Ranking · Pattern · ติดวันหยุด · เปรียบเทียบทีม · บันทึกความเห็น</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="month" id="insightFrom" onchange="renderLeaveInsight()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:6px 10px;font-size:13px">
+        <span style="color:var(--text3);font-size:12px">ถึง</span>
+        <input type="month" id="insightTo" onchange="renderLeaveInsight()" style="border:0.5px solid var(--border2);border-radius:var(--r);padding:6px 10px;font-size:13px">
+        <button class="btn btn-ghost btn-sm" onclick="resetInsightRange()"><i class="ti ti-refresh"></i>ปีนี้</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats" id="insightStats" style="margin-bottom:1.5rem"></div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab(this,'ins-ranking')">🏆 Ranking</button>
+      <button class="tab" onclick="switchTab(this,'ins-holiday')">📅 ติดวันหยุด</button>
+      <button class="tab" onclick="switchTab(this,'ins-pattern')">🔄 Pattern</button>
+      <button class="tab" onclick="switchTab(this,'ins-team')">👥 เปรียบเทียบทีม</button>
+      <button class="tab" onclick="switchTab(this,'ins-note')">📝 บันทึก HR</button>
+    </div>
+
+    <div class="tab-pane active" id="ins-ranking">
+      <div id="insightRanking"></div>
+    </div>
+    <div class="tab-pane" id="ins-holiday">
+      <div id="insightHoliday"></div>
+    </div>
+    <div class="tab-pane" id="ins-pattern">
+      <div id="insightPattern"></div>
+    </div>
+    <div class="tab-pane" id="ins-team">
+      <div id="insightTeam"></div>
+    </div>
+    <div class="tab-pane" id="ins-note">
+      <div id="insightNote"></div>
     </div>
   </div>
 </div>
@@ -1005,7 +1048,7 @@ tr:hover td{background:var(--gray-l)}
 const DB = {
   employees: [], leave: [], attendance: [], payroll: [],
   kpi: [], coaching: [], training: [], documents: [],
-  candidates: [], announcements: [], warnings: [],
+  candidates: [], announcements: [], warnings: [], hrNotes: [],
   settings: { scriptUrl: '', mode: 'kate' }
 };
 
@@ -1090,6 +1133,7 @@ function nav(page) {
     renderLeave(); renderLeaveSummary(); renderLeaveQuota();
   }
   if (page === 'attendance') { initAttDate(); renderAttDaily(); renderRisk(); }
+  if (page === 'leaveinsight') { renderLeaveInsight(); }
   if (page === 'payroll') { initPayMonths(); renderPayroll(); }
   if (page === 'kpi') { renderKpiBoard(); renderKpiList(); }
   if (page === 'coaching') { renderCoachPlan(); renderCoachHistory(); }
@@ -1153,6 +1197,11 @@ function switchTab(btn, paneId) {
   if (paneId === 'kpi-list') renderKpiList();
   if (paneId === 'kpi-eval') renderKpiEval();
   if (paneId === 'coach-history') renderCoachHistory();
+  if (paneId === 'ins-ranking') renderInsightRanking(getInsightLeave());
+  if (paneId === 'ins-holiday') renderInsightHoliday(getInsightLeave());
+  if (paneId === 'ins-pattern') renderInsightPattern(getInsightLeave());
+  if (paneId === 'ins-team') renderInsightTeam(getInsightLeave());
+  if (paneId === 'ins-note') renderInsightNote();
   if (paneId === 'train-idp') renderIdp();
 }
 
@@ -3149,6 +3198,391 @@ function clearPayDailyFilter() {
   const f=['payDailyFrom','payDailyTo','payDailyEmpSearch'];
   f.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   renderPayDaily();
+}
+
+
+// ══════════════════════════════════
+// LEAVE INSIGHT
+// ══════════════════════════════════
+
+function getInsightRange() {
+  const now = new Date();
+  const from = document.getElementById('insightFrom')?.value || `${now.getFullYear()}-01`;
+  const to   = document.getElementById('insightTo')?.value   || `${now.getFullYear()}-12`;
+  return { from, to };
+}
+
+function resetInsightRange() {
+  const y = new Date().getFullYear();
+  const f = document.getElementById('insightFrom');
+  const t = document.getElementById('insightTo');
+  if(f) f.value = `${y}-01`;
+  if(t) t.value = `${y}-12`;
+  renderLeaveInsight();
+}
+
+function ndL(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,7); // YYYY-MM
+  try { const dt=new Date(s); if(!isNaN(dt)) return dt.toISOString().slice(0,7); } catch(e){}
+  return s.slice(0,7);
+}
+function ndLFull(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  try { const dt=new Date(s); if(!isNaN(dt)) return dt.toISOString().slice(0,10); } catch(e){}
+  return s.slice(0,10);
+}
+
+function getInsightLeave() {
+  const { from, to } = getInsightRange();
+  return DB.leave.filter(l => {
+    const m = ndL(l.date);
+    return m >= from && m <= to;
+  });
+}
+
+function renderLeaveInsight() {
+  const list = getInsightLeave();
+  const { from, to } = getInsightRange();
+
+  // stats summary
+  const totalDays = list.reduce((s,l)=>s+(Number(l.days)||1),0);
+  const sick = list.filter(l=>l.type==='ลาป่วย').length;
+  const absent = list.filter(l=>l.type==='ขาดงาน').length;
+  const uniq = new Set(list.map(l=>l.employee)).size;
+
+  document.getElementById('insightStats').innerHTML = `
+    <div class="stat"><div class="stat-label">รายการลาทั้งหมด</div><div class="stat-val" style="color:var(--pink)">${list.length}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat"><div class="stat-label">รวมวันลา</div><div class="stat-val" style="color:var(--blue)">${totalDays}</div><div class="stat-sub">วัน</div></div>
+    <div class="stat"><div class="stat-label">พนักงานที่ลา</div><div class="stat-val" style="color:var(--teal)">${uniq}</div><div class="stat-sub">คน</div></div>
+    <div class="stat"><div class="stat-label">ลาป่วย</div><div class="stat-val" style="color:var(--pink)">${sick}</div><div class="stat-sub">ครั้ง</div></div>
+    <div class="stat"><div class="stat-label">ขาดงาน</div><div class="stat-val" style="color:var(--red)">${absent}</div><div class="stat-sub">ครั้ง</div></div>
+  `;
+
+  // render active tab
+  const activePane = document.querySelector('#page-leaveinsight .tab-pane.active');
+  if (activePane?.id === 'ins-ranking') renderInsightRanking(list);
+  else if (activePane?.id === 'ins-holiday') renderInsightHoliday(list);
+  else if (activePane?.id === 'ins-pattern') renderInsightPattern(list);
+  else if (activePane?.id === 'ins-team') renderInsightTeam(list);
+  else if (activePane?.id === 'ins-note') renderInsightNote();
+  else renderInsightRanking(list);
+}
+
+// ── Ranking ──
+function renderInsightRanking(list) {
+  const el = document.getElementById('insightRanking');
+  if (!el) return;
+
+  // นับรายคน
+  const byEmp = {};
+  list.forEach(l => {
+    if (!byEmp[l.employee]) byEmp[l.employee] = { total:0, sick:0, biz:0, vac:0, absent:0, late:0, days:0 };
+    const e = byEmp[l.employee];
+    e.total++;
+    e.days += Number(l.days)||1;
+    if(l.type==='ลาป่วย') e.sick++;
+    else if(l.type==='ลากิจ') e.biz++;
+    else if(l.type==='ลาพักร้อน') e.vac++;
+    else if(l.type==='ขาดงาน') e.absent++;
+    else if(l.type==='มาสาย') e.late++;
+  });
+
+  const ranked = Object.entries(byEmp).sort((a,b)=>b[1].days-a[1].days);
+  const maxDays = ranked[0]?.[1]?.days || 1;
+
+  el.innerHTML = ranked.length ? `
+    <div style="margin-bottom:12px;font-size:13px;color:var(--text2)">เรียงตามวันลารวม</div>
+    ${ranked.map(([name, d], i) => {
+      const emp = DB.employees.find(e=>e.nickname===name);
+      const tc = colorForTeam(emp?.team||'');
+      const pct = Math.round(d.days/maxDays*100);
+      const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}.`;
+      return `<div class="card" style="padding:1rem;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="font-size:16px;min-width:28px">${medal}</div>
+          <div class="avatar" style="background:var(--${tc}-l);color:var(--${tc}-d)">${initials(name)}</div>
+          <div style="flex:1">
+            <div style="font-weight:500">${name} <span style="font-size:11px;color:var(--text3)">${emp?.team||''}</span></div>
+            <div style="font-size:11px;color:var(--text3)">${emp?.position||''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:600;color:var(--pink)">${d.days} <span style="font-size:12px">วัน</span></div>
+            <div style="font-size:11px;color:var(--text3)">${d.total} ครั้ง</div>
+          </div>
+        </div>
+        <div style="background:var(--border);border-radius:3px;height:6px;margin-bottom:8px;overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:var(--${tc});border-radius:3px;transition:width .3s"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${d.sick?`<span class="badge badge-pink">ป่วย ${d.sick}</span>`:''}
+          ${d.biz?`<span class="badge badge-amber">กิจ ${d.biz}</span>`:''}
+          ${d.vac?`<span class="badge badge-teal">พักร้อน ${d.vac}</span>`:''}
+          ${d.absent?`<span class="badge badge-red">ขาด ${d.absent}</span>`:''}
+          ${d.late?`<span class="badge badge-purple">สาย ${d.late}</span>`:''}
+        </div>
+      </div>`;
+    }).join('')}` : `<div style="text-align:center;padding:3rem;color:var(--text3)">ไม่มีข้อมูลในช่วงที่เลือก</div>`;
+}
+
+// ── ติดวันหยุด ──
+function renderInsightHoliday(list) {
+  const el = document.getElementById('insightHoliday');
+  if (!el) return;
+  const DAYS_TH = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+  // หาการลาที่ติดวันหยุด (ศุกร์หรือจันทร์)
+  const suspicious = list.filter(l => {
+    const d = ndLFull(l.date);
+    if (!d) return false;
+    const dow = new Date(d).getDay();
+    return dow === 1 || dow === 5; // จันทร์หรือศุกร์
+  });
+
+  // นับตาม day of week
+  const dowCount = [0,0,0,0,0,0,0];
+  list.forEach(l => {
+    const d = ndLFull(l.date);
+    if (d) dowCount[new Date(d).getDay()]++;
+  });
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div class="card">
+        <div class="card-title">📊 การลาแยกตามวันในสัปดาห์</div>
+        ${dowCount.map((c,i)=>`
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="width:60px;font-size:12px;color:${i===0||i===6?'var(--teal)':i===1||i===5?'var(--pink)':'var(--text2)'};font-weight:${i===1||i===5?'600':'400'}">${DAYS_TH[i]}</div>
+            <div style="flex:1;background:var(--border);border-radius:3px;height:16px;overflow:hidden">
+              <div style="width:${dowCount.reduce((a,b)=>Math.max(a,b),1)?Math.round(c/dowCount.reduce((a,b)=>Math.max(a,b),1)*100):0}%;height:100%;background:${i===0||i===6?'var(--teal)':i===1||i===5?'var(--pink)':'var(--blue-l)'};border-radius:3px"></div>
+            </div>
+            <div style="width:24px;text-align:right;font-size:12px;font-weight:500">${c}</div>
+          </div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">⚠️ ลาวัน จ./ศ. ต้องสังเกต (${suspicious.length} ครั้ง)</div>
+        ${suspicious.length ? `
+          <div class="card" style="background:var(--amber-l);border-color:var(--amber);margin-bottom:8px;padding:8px 12px">
+            <div style="font-size:12px;color:var(--amber-d)">การลาวันจันทร์หรือศุกร์อาจติดวันหยุด ควรตรวจสอบ</div>
+          </div>
+          ${suspicious.slice(0,10).map(l=>{
+            const d = ndLFull(l.date);
+            const dow = new Date(d).getDay();
+            const emp = DB.employees.find(e=>e.nickname===l.employee);
+            const tc = colorForTeam(emp?.team||'');
+            return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">
+              <div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--${tc}-l);color:var(--${tc}-d)">${initials(l.employee)}</div>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:500">${l.employee}</div>
+                <div style="font-size:11px;color:var(--text3)">${fmtDate(d)} (${DAYS_TH[dow]})</div>
+              </div>
+              ${badgeLeave(l.type)}
+            </div>`;
+          }).join('')}
+          ${suspicious.length>10?`<div style="font-size:12px;color:var(--text3);text-align:center;padding:6px">และอีก ${suspicious.length-10} รายการ</div>`:''}
+        ` : '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">✅ ไม่พบการลาวันจันทร์/ศุกร์ที่น่าสังเกต</div>'}
+      </div>
+    </div>`;
+}
+
+// ── Pattern ──
+function renderInsightPattern(list) {
+  const el = document.getElementById('insightPattern');
+  if (!el) return;
+
+  // หาคนที่ลาซ้ำๆ วันเดิม
+  const byEmpDow = {};
+  list.forEach(l => {
+    const d = ndLFull(l.date);
+    if (!d) return;
+    const dow = new Date(d).getDay();
+    if (!byEmpDow[l.employee]) byEmpDow[l.employee] = [0,0,0,0,0,0,0];
+    byEmpDow[l.employee][dow]++;
+  });
+
+  const DAYS_TH = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+  const patterns = Object.entries(byEmpDow).map(([name, counts]) => {
+    const maxDow = counts.indexOf(Math.max(...counts));
+    const maxCount = counts[maxDow];
+    const total = counts.reduce((a,b)=>a+b,0);
+    const pct = Math.round(maxCount/total*100);
+    return { name, counts, maxDow, maxCount, total, pct };
+  }).filter(p=>p.maxCount>=2).sort((a,b)=>b.pct-a.pct);
+
+  // หาเดือนที่ลาบ่อย
+  const byMonth = {};
+  list.forEach(l => {
+    const m = ndL(l.date);
+    if (m) byMonth[m] = (byMonth[m]||0)+1;
+  });
+  const topMonths = Object.entries(byMonth).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="card">
+        <div class="card-title">🔄 ลาซ้ำวันเดิม (${patterns.length} คน)</div>
+        ${patterns.length ? patterns.map(p => {
+          const emp = DB.employees.find(e=>e.nickname===p.name);
+          const tc = colorForTeam(emp?.team||'');
+          return `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <div class="avatar" style="width:28px;height:28px;font-size:10px;background:var(--${tc}-l);color:var(--${tc}-d)">${initials(p.name)}</div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:500">${p.name}</div></div>
+              <div style="font-size:11px;color:var(--amber);font-weight:500">ลาวัน${DAYS_TH[p.maxDow]} ${p.maxCount} ครั้ง (${p.pct}%)</div>
+            </div>
+            <div style="display:flex;gap:3px">
+              ${DAYS_TH.map((d,i)=>`<div style="flex:1;text-align:center">
+                <div style="font-size:9px;color:var(--text3);margin-bottom:2px">${d}</div>
+                <div style="height:${p.counts[i]?Math.max(12,p.counts[i]*8):4}px;background:${i===p.maxDow?'var(--pink)':'var(--pink-m)'};border-radius:2px;opacity:${p.counts[i]?1:0.2}"></div>
+                <div style="font-size:9px;color:var(--text3);margin-top:2px">${p.counts[i]||''}</div>
+              </div>`).join('')}
+            </div>
+          </div>`;
+        }).join('') : '<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">✅ ไม่พบ pattern การลาซ้ำ</div>'}
+      </div>
+      <div class="card">
+        <div class="card-title">📅 เดือนที่ลาบ่อยสุด</div>
+        ${topMonths.map(([m,c],i)=>{
+          const d = new Date(m+'-01');
+          const mth = MONTHS_TH[d.getMonth()]+' '+(d.getFullYear()+543);
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)">
+            <div style="font-size:15px">${['🥇','🥈','🥉','4️⃣','5️⃣'][i]}</div>
+            <div style="flex:1;font-size:13px">${mth}</div>
+            <div style="font-weight:600;color:var(--pink)">${c} ครั้ง</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ── เปรียบเทียบทีม ──
+function renderInsightTeam(list) {
+  const el = document.getElementById('insightTeam');
+  if (!el) return;
+  const teams = ['Telesales','Live Streaming','Content','Admin','HR'];
+  const data = teams.map(team => {
+    const empNames = DB.employees.filter(e=>e.team===team&&e.status==='active').map(e=>e.nickname);
+    const teamLeave = list.filter(l=>empNames.includes(l.employee));
+    const totalDays = teamLeave.reduce((s,l)=>s+(Number(l.days)||1),0);
+    const absent = teamLeave.filter(l=>l.type==='ขาดงาน').length;
+    const avgPerEmp = empNames.length ? (totalDays/empNames.length).toFixed(1) : 0;
+    return { team, empNames, teamLeave, totalDays, absent, avgPerEmp };
+  });
+  const maxDays = Math.max(...data.map(d=>d.totalDays),1);
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-title">📊 วันลารวมแต่ละทีม</div>
+      ${data.map(d=>{
+        const tc = colorForTeam(d.team);
+        const pct = Math.round(d.totalDays/maxDays*100);
+        return `<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
+            <span style="font-weight:500"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--${tc});margin-right:6px"></span>${d.team} <span style="color:var(--text3);font-weight:400">(${d.empNames.length} คน)</span></span>
+            <span style="color:var(--pink);font-weight:600">${d.totalDays} วัน · avg ${d.avgPerEmp} วัน/คน</span>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:10px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:var(--${tc});border-radius:4px;transition:width .4s"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+            ${['ลาป่วย','ลากิจ','ลาพักร้อน','ขาดงาน','มาสาย'].map(type=>{
+              const c = d.teamLeave.filter(l=>l.type===type).length;
+              return c ? `<span class="badge badge-${{ลาป่วย:'pink',ลากิจ:'amber',ลาพักร้อน:'teal',ขาดงาน:'red',มาสาย:'purple'}[type]||'gray'}" style="font-size:10px">${type} ${c}</span>` : '';
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="card">
+      <div class="card-title">📋 สรุปตาราง</div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>ทีม</th><th>พนักงาน</th><th>ลาป่วย</th><th>ลากิจ</th><th>ลาพักร้อน</th><th>ขาดงาน</th><th>มาสาย</th><th>รวมวัน</th><th>avg/คน</th></tr></thead>
+        <tbody>${data.map(d=>`<tr>
+          <td style="font-weight:500">${d.team}</td>
+          <td>${d.empNames.length}</td>
+          <td>${d.teamLeave.filter(l=>l.type==='ลาป่วย').reduce((s,l)=>s+(Number(l.days)||1),0)}</td>
+          <td>${d.teamLeave.filter(l=>l.type==='ลากิจ').reduce((s,l)=>s+(Number(l.days)||1),0)}</td>
+          <td>${d.teamLeave.filter(l=>l.type==='ลาพักร้อน').reduce((s,l)=>s+(Number(l.days)||1),0)}</td>
+          <td style="color:var(--red)">${d.teamLeave.filter(l=>l.type==='ขาดงาน').length}</td>
+          <td style="color:var(--purple)">${d.teamLeave.filter(l=>l.type==='มาสาย').length}</td>
+          <td style="font-weight:600;color:var(--pink)">${d.totalDays}</td>
+          <td>${d.avgPerEmp}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+}
+
+// ── บันทึก HR Note ──
+function renderInsightNote() {
+  const el = document.getElementById('insightNote');
+  if (!el) return;
+  if (!DB.hrNotes) DB.hrNotes = [];
+  const notes = [...DB.hrNotes].sort((a,b)=>b.date.localeCompare(a.date));
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-title">✏️ เพิ่มบันทึก HR</div>
+      <div class="form-grid" style="margin-bottom:10px">
+        <div class="field"><label>วันที่</label><input type="date" id="noteDate" value="${todayStr()}"></div>
+        <div class="field"><label>หัวข้อ</label><input id="noteTitle" placeholder="เช่น สังเกตพบ pattern ลาวันจันทร์..."></div>
+        <div class="field form-full"><label>รายละเอียด / ความเห็น</label><textarea id="noteContent" rows="3" placeholder="บันทึกข้อสังเกต แนวทาง หรือแผนการดำเนินการ..."></textarea></div>
+        <div class="field"><label>ระดับความสำคัญ</label>
+          <select id="noteLevel">
+            <option value="info">ℹ️ ทั่วไป</option>
+            <option value="warn">⚠️ ต้องติดตาม</option>
+            <option value="alert">🔴 เร่งด่วน</option>
+          </select>
+        </div>
+        <div class="field"><label>เกี่ยวกับพนักงาน</label><input id="noteEmp" list="empList" placeholder="ชื่อพนักงาน (ถ้ามี)"></div>
+      </div>
+      <button class="btn btn-primary edit-only" onclick="saveHrNote()"><i class="ti ti-plus"></i>บันทึก</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${notes.length ? notes.map(n=>{
+        const colors={info:'blue',warn:'amber',alert:'red'};
+        const icons={info:'ℹ️',warn:'⚠️',alert:'🔴'};
+        return `<div class="card" style="padding:1rem;border-left:3px solid var(--${colors[n.level]||'blue'})">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+            <div style="font-weight:500;font-size:14px">${icons[n.level]||'ℹ️'} ${n.title}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--text3)">${fmtDate(n.date)}</span>
+              <button class="btn btn-danger btn-sm edit-only" onclick="deleteHrNote('${n.id}')"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          ${n.emp?`<div style="font-size:12px;margin-bottom:4px"><span class="badge badge-${colors[n.level]||'blue'}">${n.emp}</span></div>`:''}
+          <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${n.content}</div>
+        </div>`;
+      }).join('') : '<div style="text-align:center;padding:2rem;color:var(--text3)"><i class="ti ti-notebook" style="font-size:32px;display:block;margin-bottom:8px"></i><p>ยังไม่มีบันทึก — เพิ่มความเห็นด้านบนได้เลยค่ะ</p></div>'}
+    </div>`;
+}
+
+function saveHrNote() {
+  if (!DB.hrNotes) DB.hrNotes = [];
+  const obj = {
+    id: uid(),
+    date: document.getElementById('noteDate').value || todayStr(),
+    title: document.getElementById('noteTitle').value.trim(),
+    content: document.getElementById('noteContent').value.trim(),
+    level: document.getElementById('noteLevel').value,
+    emp: document.getElementById('noteEmp').value.trim()
+  };
+  if (!obj.title && !obj.content) return alert('กรุณากรอกหัวข้อหรือรายละเอียด');
+  if (!obj.title) obj.title = obj.content.slice(0,30)+'...';
+  DB.hrNotes.push(obj);
+  save(); pushToSheets(); renderInsightNote();
+  document.getElementById('noteTitle').value='';
+  document.getElementById('noteContent').value='';
+  document.getElementById('noteEmp').value='';
+}
+
+function deleteHrNote(id) {
+  if (!confirm('ลบบันทึกนี้?')) return;
+  DB.hrNotes = DB.hrNotes.filter(n=>n.id!==id);
+  save(); pushToSheets(); renderInsightNote();
 }
 
 // ══════════════════════════════════
